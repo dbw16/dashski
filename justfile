@@ -1,7 +1,42 @@
+service_id := "74417c7b-a742-4159-b8df-9f8e966ce040"
+project_id := "2dabe0de-e44f-426d-9ef1-abb6afe2b4f6"
+
 default: fmt lint test
 
 run:
     uv run uvicorn dashski.main:app --reload
+
+# one-time: link this dir to the existing Railway project (fresh clone / new machine)
+link:
+    railway link {{project_id}}
+
+# rebuild image from Dockerfile and upload current code
+deploy:
+    railway up --service dashski
+
+# deploy, then tail logs for the new deployment
+deploy-watch: deploy
+    railway logs --service {{service_id}} --deployment
+
+# project/service overview
+status:
+    railway status
+
+# recent app logs
+logs:
+    railway logs --service {{service_id}} --deployment
+
+# restart the current image without rebuilding (env var change, volume attach, crash recovery)
+redeploy:
+    railway redeploy --service {{service_id}} --yes
+
+# confirm the data volume is attached
+volumes:
+    railway volume list --json
+
+# show/create the public domain
+domain:
+    railway domain --service {{service_id}}
 
 test:
     uv run pytest
