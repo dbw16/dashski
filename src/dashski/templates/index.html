@@ -11,7 +11,7 @@
     <div class="page">
       <header class="page-header">
         <h1>Dashski</h1>
-        <p class="subtitle">Hello, world — FastAPI + HTMX</p>
+        <p class="subtitle">South Island snow at a glance</p>
       </header>
       <section class="stat-grid">
         <div class="stat-tile">
@@ -33,6 +33,29 @@
           <span class="stat-label">Stack</span>
           <span class="stat-value">FastAPI + HTMX</span>
         </div>
+      </section>
+      <section class="widget-grid">
+        <section class="card widget"
+                 id="widget-forecast"
+                 hx-get="/api/widget/forecast"
+                 hx-trigger="load, every 60s">
+          <h2>Forecast</h2>
+          <p class="muted">Loading…</p>
+        </section>
+        <section class="card widget"
+                 id="widget-observation"
+                 hx-get="/api/widget/observation"
+                 hx-trigger="load, every 60s">
+          <h2>Observations</h2>
+          <p class="muted">Loading…</p>
+        </section>
+        <section class="card widget"
+                 id="widget-snow-report"
+                 hx-get="/api/widget/snow-report"
+                 hx-trigger="load, every 60s">
+          <h2>Snow reports</h2>
+          <p class="muted">Loading…</p>
+        </section>
       </section>
       <section class="card">
         <h2>Live demo</h2>

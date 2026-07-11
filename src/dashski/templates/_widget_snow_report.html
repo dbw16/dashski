@@ -1,0 +1,40 @@
+<h2>Snow reports</h2>
+<p class="freshness{% if freshness.stale %} freshness-stale{% endif %}">
+  <span class="status-dot{% if freshness.stale %} status-dot-warn{% endif %}"
+        aria-hidden="true"></span>
+  {{ freshness.label }}
+</p>
+{% if readings %}
+  <div class="table-scroll">
+    <table class="readings">
+      <thead>
+        <tr>
+          <th>Ski field</th>
+          <th>Reported</th>
+          <th>Base cm</th>
+          <th>New 24h cm</th>
+          <th>Lifts</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in readings %}
+          <tr>
+            <td>{{ r.ski_field }}</td>
+            <td>{{ r.reported_at.strftime("%a %d %b") }}</td>
+            <td>{{ r.base_depth_cm if r.base_depth_cm is not none else "–" }}</td>
+            <td>{{ r.new_snow_24h_cm if r.new_snow_24h_cm is not none else "–" }}</td>
+            <td>
+              {% if r.lifts_open is not none and r.lifts_total is not none %}
+                {{ r.lifts_open }}/{{ r.lifts_total }}
+              {% else %}
+                –
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <p class="muted">No snow report data yet.</p>
+{% endif %}
