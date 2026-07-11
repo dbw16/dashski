@@ -8,6 +8,7 @@ with no client-side JavaScript framework.
 
 - Python 3.14+
 - [uv](https://docs.astral.sh/uv/)
+- [just](https://github.com/casey/just)
 
 ## Setup
 
@@ -18,7 +19,7 @@ uv sync
 ## Run
 
 ```
-uv run uvicorn dashski.main:app --reload
+just run
 ```
 
 Then open http://127.0.0.1:8000.
@@ -26,12 +27,17 @@ Then open http://127.0.0.1:8000.
 ## Test
 
 ```
-uv run pytest
+just test
 ```
 
 ## Lint & type check
 
 ```
-uv run ruff check
-uv run pyrefly check
+just lint
+```
+
+## Format
+
+```
+just fmt
 ```
