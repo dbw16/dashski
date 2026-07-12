@@ -86,11 +86,11 @@ class SnowReport(SQLModel, table=True):
     fetched_at: datetime
     ski_field: str
     reported_at: datetime
-    base_depth_cm: float | None = None
+    base_depth_lower_cm: float | None = None
+    base_depth_upper_cm: float | None = None
     new_snow_24h_cm: float | None = None
     new_snow_7d_cm: float | None = None
-    lifts_open: int | None = None
-    lifts_total: int | None = None
+    season_snowfall_cm: float | None = None
     summary: str | None = None
 
 

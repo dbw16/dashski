@@ -56,37 +56,6 @@ body {
   color: var(--text-secondary);
 }
 
-.stat-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-.stat-tile {
-  background: var(--surface-1);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 16px 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.stat-label {
-  font-size: 13px;
-  color: var(--text-secondary);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.stat-value {
-  font-size: 22px;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
 .status-dot {
   width: 8px;
   height: 8px;
@@ -102,9 +71,13 @@ body {
   padding: 20px 24px;
 }
 
+.widget-toolbar {
+  margin-bottom: 16px;
+}
+
 .widget-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: 1fr;
   gap: 16px;
   margin-bottom: 24px;
 }
@@ -174,10 +147,4 @@ body {
 
 .btn:hover {
   border-color: var(--series-1);
-}
-
-.btn-primary {
-  background: var(--series-1);
-  border-color: var(--series-1);
-  color: #ffffff;
 }

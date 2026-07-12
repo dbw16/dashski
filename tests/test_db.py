@@ -41,9 +41,9 @@ def test_all_tables_round_trip(engine: Engine) -> None:
                 fetched_at=now,
                 ski_field="Coronet Peak",
                 reported_at=now,
-                base_depth_cm=85.0,
-                lifts_open=4,
-                lifts_total=5,
+                base_depth_lower_cm=60.0,
+                base_depth_upper_cm=85.0,
+                season_snowfall_cm=120.0,
             )
         )
         session.commit()
@@ -61,7 +61,7 @@ def test_all_tables_round_trip(engine: Engine) -> None:
         assert observation.temp_c == -1.5
 
         report = session.exec(select(SnowReport)).one()
-        assert report.lifts_open == 4
+        assert report.base_depth_upper_cm == 85.0
 
         raw = session.exec(select(RawFetch)).one()
         assert raw.payload == "{}"

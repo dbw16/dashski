@@ -30,6 +30,11 @@ logs:
 redeploy:
     railway redeploy --service {{service_id}} --yes
 
+# nuke the on-disk sqlite db (volume) and restart so it's recreated fresh
+db-reset:
+    railway ssh --service {{service_id}} -- rm -fv /app/data/dashski.db
+    railway redeploy --service {{service_id}} --yes
+
 # confirm the data volume is attached
 volumes:
     railway volume list --json

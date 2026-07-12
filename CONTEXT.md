@@ -1,7 +1,9 @@
 # Dashski
 
-A single-page dashboard for tracking snow conditions on New Zealand's South Island:
+A single-page dashboard for backcountry ski touring on New Zealand's South Island:
 what was forecast, what actually happened, and what the ski fields are reporting.
+Snow conditions (depth, snowfall) are in scope; ski field operations (lift status,
+trail grooming) are not — this is a touring tool, not a resort trail-map app.
 
 ## Language
 
@@ -22,8 +24,17 @@ Measured weather from a station — what actually happened.
 _Avoid_: actuals, actual weather, results
 
 **Snow Report**:
-A ski field's self-reported conditions: base depth, new snowfall, lift status.
+A ski field's self-reported snow conditions: base depth (by elevation), new
+snowfall, season snowfall. Lift/trail operations are deliberately out of scope.
 _Avoid_: conditions report
+
+**Calculated Figure**:
+A number the dashboard derives itself rather than reads directly from a
+source — e.g. 24h snowfall estimated from the change in a field's 7-day
+total when the field doesn't publish 24h snowfall directly. Always marked
+distinctly from a direct source figure so the user knows which they're
+trusting.
+_Avoid_: estimate, derived value (when the distinction from a direct figure matters, say "calculated")
 
 **Reading**:
 One parsed, typed data point stored from a source. Each source kind has its own

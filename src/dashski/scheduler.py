@@ -16,8 +16,8 @@ from dashski.models import FetchRun, RawFetch, SourceStatus, utcnow
 from dashski.sources.base import Source
 
 
-def run_source(source: Source, engine: Engine) -> None:
-    """Execute one fetch run for a source, recording success or failure."""
+def run_source(source: Source, engine: Engine) -> bool:
+    """Execute one fetch run for a source, recording success or failure. Returns success."""
     started = utcnow()
     with Session(engine) as session:
         status = session.get(SourceStatus, source.source_id) or SourceStatus(
@@ -55,6 +55,7 @@ def run_source(source: Source, engine: Engine) -> None:
             )
         )
         session.commit()
+        return error is None
 
 
 def create_scheduler(sources: Sequence[Source], engine: Engine) -> AsyncIOScheduler:

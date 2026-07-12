@@ -13,66 +13,35 @@
         <h1>Dashski</h1>
         <p class="subtitle">South Island snow at a glance</p>
       </header>
-      <section class="stat-grid">
-        <div class="stat-tile">
-          <span class="stat-label">
-            <span class="status-dot" aria-hidden="true"></span>
-            Status
-          </span>
-          <span class="stat-value">Online</span>
-        </div>
-        <div class="stat-tile">
-          <span class="stat-label">Server time</span>
-          {% include "_time.html" %}
-        </div>
-        <div class="stat-tile">
-          <span class="stat-label">Pings received</span>
-          {% include "_ping.html" %}
-        </div>
-        <div class="stat-tile">
-          <span class="stat-label">Stack</span>
-          <span class="stat-value">FastAPI + HTMX</span>
-        </div>
-      </section>
+      <div class="actions widget-toolbar">
+        <button class="btn"
+                hx-post="/api/refresh"
+                hx-target="#refresh-status"
+                hx-swap="outerHTML">Force refresh</button>
+        <span id="refresh-status" class="muted"></span>
+      </div>
       <section class="widget-grid">
         <section class="card widget"
                  id="widget-forecast"
                  hx-get="/api/widget/forecast"
-                 hx-trigger="load, every 60s">
+                 hx-trigger="load, every 60s, refresh-done from:body">
           <h2>Forecast</h2>
           <p class="muted">Loading…</p>
         </section>
         <section class="card widget"
                  id="widget-observation"
                  hx-get="/api/widget/observation"
-                 hx-trigger="load, every 60s">
+                 hx-trigger="load, every 60s, refresh-done from:body">
           <h2>Observations</h2>
           <p class="muted">Loading…</p>
         </section>
         <section class="card widget"
                  id="widget-snow-report"
                  hx-get="/api/widget/snow-report"
-                 hx-trigger="load, every 60s">
+                 hx-trigger="load, every 60s, refresh-done from:body">
           <h2>Snow reports</h2>
           <p class="muted">Loading…</p>
         </section>
-      </section>
-      <section class="card">
-        <h2>Live demo</h2>
-        <p class="muted">
-          These buttons call the server over HTMX and swap just the tile above —
-          no full page reload, no client-side JavaScript framework.
-        </p>
-        <div class="actions">
-          <button class="btn"
-                  hx-get="/api/time"
-                  hx-target="#server-time"
-                  hx-swap="outerHTML">Refresh time</button>
-          <button class="btn btn-primary"
-                  hx-post="/api/ping"
-                  hx-target="#ping-count"
-                  hx-swap="outerHTML">Ping server</button>
-        </div>
       </section>
     </div>
   </body>

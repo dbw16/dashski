@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
     "apscheduler>=3.11.0",
+    "beautifulsoup4>=4.15.0",
     "fastapi>=0.139.0",
     "httpx2>=2.5.0",
     "jinja2>=3.1.6",
@@ -55,7 +56,6 @@ ignore = "H030,H031"
 
 [dependency-groups]
 dev = [
-    "beautifulsoup4>=4.15.0",
     "djlint>=1.40.4",
     "pyrefly>=1.1.1",
     "pytest>=9.1.1",
