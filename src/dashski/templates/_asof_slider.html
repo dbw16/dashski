@@ -1,0 +1,29 @@
+{% if snapshots %}
+  <div class="asof-controls" data-snapshots="{{ snapshots_json }}">
+    <button type="button"
+            class="btn btn-icon"
+            onclick="dashskiStep(-1)"
+            aria-label="Previous snapshot">‹</button>
+    <input type="range"
+           id="asof-range"
+           class="asof-range"
+           min="0"
+           max="{{ snapshots | length - 1 }}"
+           value="{{ snapshots | length - 1 }}"
+           oninput="dashskiUpdate(this.value)"
+           aria-label="History position">
+    <button type="button"
+            class="btn btn-icon"
+            onclick="dashskiStep(1)"
+            aria-label="Next snapshot">›</button>
+    <button type="button"
+            class="btn"
+            hx-get="/api/snapshots"
+            hx-target="#asof-slider"
+            hx-swap="innerHTML">Live</button>
+  </div>
+  <p class="asof-label muted" id="asof-label"></p>
+  <script>dashskiUpdate({{ snapshots | length - 1 }});</script>
+{% else %}
+  <p class="muted">No history yet.</p>
+{% endif %}

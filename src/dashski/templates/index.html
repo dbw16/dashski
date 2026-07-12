@@ -20,6 +20,13 @@
                 hx-swap="outerHTML">Force refresh</button>
         <span id="refresh-status" class="muted"></span>
       </div>
+      <input type="hidden" id="as-of-value" name="as_of" value="" />
+      <section class="card widget-toolbar"
+               id="asof-slider"
+               hx-get="/api/snapshots"
+               hx-trigger="load, every 60s[dashskiIsLive()]">
+        <p class="muted">Loading history…</p>
+      </section>
       <section class="widget-grid">
         <section class="card widget"
                  id="widget-forecast"
@@ -31,18 +38,58 @@
         <section class="card widget"
                  id="widget-observation"
                  hx-get="/api/widget/observation"
-                 hx-trigger="load, every 60s, refresh-done from:body">
+                 hx-include="#as-of-value"
+                 hx-trigger="load, every 60s[dashskiIsLive()], refresh-done[dashskiIsLive()] from:body, asof-changed from:body delay:150ms">
           <h2>Observations</h2>
           <p class="muted">Loading…</p>
         </section>
         <section class="card widget"
                  id="widget-snow-report"
                  hx-get="/api/widget/snow-report"
-                 hx-trigger="load, every 60s, refresh-done from:body">
+                 hx-include="#as-of-value"
+                 hx-trigger="load, every 60s[dashskiIsLive()], refresh-done[dashskiIsLive()] from:body, asof-changed from:body delay:150ms">
           <h2>Snow reports</h2>
           <p class="muted">Loading…</p>
         </section>
       </section>
     </div>
+    <script>
+      function dashskiSnapshots() {
+        const el = document.querySelector("#asof-slider [data-snapshots]");
+        return el ? JSON.parse(el.dataset.snapshots) : [];
+      }
+
+      function dashskiIsLive() {
+        const el = document.getElementById("as-of-value");
+        return !el || el.value === "";
+      }
+
+      function dashskiFormatUTC(iso) {
+        const d = new Date(iso.endsWith("Z") ? iso : iso + "Z");
+        return (
+          d.toLocaleString("en-NZ", { timeZone: "UTC", dateStyle: "medium", timeStyle: "short" }) +
+          " UTC"
+        );
+      }
+
+      function dashskiUpdate(index) {
+        const snapshots = dashskiSnapshots();
+        const range = document.getElementById("asof-range");
+        const label = document.getElementById("asof-label");
+        const hidden = document.getElementById("as-of-value");
+        if (!snapshots.length || !range || !label || !hidden) return;
+        index = Math.max(0, Math.min(snapshots.length - 1, Number(index)));
+        range.value = index;
+        const live = index === snapshots.length - 1;
+        hidden.value = live ? "" : snapshots[index];
+        label.textContent = live ? "Live" : "Snapshot: " + dashskiFormatUTC(snapshots[index]);
+        document.body.dispatchEvent(new Event("asof-changed"));
+      }
+
+      function dashskiStep(delta) {
+        const range = document.getElementById("asof-range");
+        if (range) dashskiUpdate(Number(range.value) + delta);
+      }
+    </script>
   </body>
 </html>

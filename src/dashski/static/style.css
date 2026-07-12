@@ -148,3 +148,42 @@ body {
 .btn:hover {
   border-color: var(--series-1);
 }
+
+.btn-icon {
+  padding: 8px 14px;
+  font-size: 18px;
+  line-height: 1;
+  min-width: 44px;
+}
+
+.asof-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.asof-range {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  accent-color: var(--series-1);
+}
+
+.asof-label {
+  margin: 8px 0 0;
+}
+
+.asof-banner {
+  color: var(--text-secondary);
+}
+
+@media (max-width: 480px) {
+  .asof-controls {
+    flex-wrap: wrap;
+  }
+
+  .asof-range {
+    order: 1;
+    flex-basis: 100%;
+  }
+}

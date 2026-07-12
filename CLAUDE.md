@@ -7,3 +7,5 @@ Do not deploy app without asking.
 To deploy the app and make sure it builds run `just deploy-watch`
 
 This is a work in progress app, dont worry about db migrations ect, just nuke it and start fresh if needed.
+
+See @CONTEXT.md for core concepts, term definitions. 

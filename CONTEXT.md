@@ -51,14 +51,33 @@ The unparsed payload (HTML/JSON text) from a source's most recent fetch. Only
 the latest is kept, for debugging broken parsers.
 
 **Widget**:
-A self-refreshing dashboard fragment showing the latest readings for one source
-kind, including its freshness.
+A dashboard fragment showing one source kind's readings as of the current As
+Of position (Live by default), including freshness or, when viewing a past
+Snapshot, which one.
 _Avoid_: panel, tile, card
 
 **Stale**:
 A source whose latest fetch run failed, or whose data is older than its fetch
-interval should allow. Widgets surface staleness rather than silently showing
-old data.
+interval should allow, while Live. Not shown when viewing a past Snapshot —
+a frozen historical view isn't "stale," it's just old on purpose.
+
+**Snapshot**:
+One point in time — a `fetched_at` value shared by readings stored in the
+same fetch — at which the dashboard's known state changed. The unit the
+history slider steps through.
+_Avoid_: fetch time, timestamp, revision
+
+**As Of**:
+The point in time the dashboard is being viewed at. Defaults to Live; set to
+a past Snapshot, each widget shows the latest reading at or before it, per
+(source, field).
+_Avoid_: point in time, viewing date, cutoff
+
+**Live**:
+The As Of state that follows newest data automatically: the slider tracks
+the newest Snapshot as it arrives, and auto-refresh polling runs. Any other
+As Of is frozen — polling stops until returning to Live.
+_Avoid_: current, latest, real-time
 
 **Ski Field**:
 A ski area on the South Island (Coronet Peak, Cardrona, Mt Hutt, …). The NZ term.

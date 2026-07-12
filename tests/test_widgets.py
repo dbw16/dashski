@@ -310,3 +310,134 @@ def test_dashboard_page_includes_all_widgets(client: TestClient) -> None:
     assert response.status_code == 200
     for url in ("/api/widget/forecast", "/api/widget/observation", "/api/widget/snow-report"):
         assert f'hx-get="{url}"' in response.text
+    assert 'hx-get="/api/snapshots"' in response.text
+
+
+def test_observation_widget_as_of_shows_reading_at_cutoff(
+    client: TestClient, engine: Engine
+) -> None:
+    _seed_status(engine, SourceKind.OBSERVATION)
+    now = utcnow()
+    older, newer = now - timedelta(hours=2), now
+    with Session(engine) as session:
+        session.add(
+            ObservationReading(
+                source_id="seed-observation",
+                fetched_at=older,
+                station="Coronet AWS",
+                observed_at=older,
+                temp_c=-5.0,
+            )
+        )
+        session.add(
+            ObservationReading(
+                source_id="seed-observation",
+                fetched_at=newer,
+                station="Coronet AWS",
+                observed_at=newer,
+                temp_c=-3.0,
+            )
+        )
+        session.commit()
+
+    response = client.get("/api/widget/observation", params={"as_of": older.isoformat()})
+    assert "-5.0" in response.text
+    assert "-3.0" not in response.text
+    assert "Snapshot from" in response.text
+
+
+def test_snow_report_widget_as_of_filters_to_snapshot(client: TestClient, engine: Engine) -> None:
+    _seed_status(engine, SourceKind.SNOW_REPORT)
+    now = utcnow()
+    older, newer = now - timedelta(hours=2), now
+    with Session(engine) as session:
+        session.add(
+            SnowReport(
+                source_id="seed-snow_report",
+                fetched_at=older,
+                ski_field="Coronet Peak",
+                reported_at=older,
+                season_snowfall_cm=100.0,
+            )
+        )
+        session.add(
+            SnowReport(
+                source_id="seed-snow_report",
+                fetched_at=newer,
+                ski_field="Coronet Peak",
+                reported_at=newer,
+                season_snowfall_cm=120.0,
+            )
+        )
+        session.commit()
+
+    response = client.get("/api/widget/snow-report", params={"as_of": older.isoformat()})
+    assert "100" in response.text
+    assert "120" not in response.text
+
+
+def test_snow_report_widget_as_of_ignores_prior_report_fetched_after_cutoff(
+    client: TestClient, engine: Engine
+) -> None:
+    """A backfilled row (fetched late, dated earlier) mustn't count as the 24h baseline
+    for a snapshot taken before that backfill happened (ADR 0009)."""
+    _seed_status(engine, SourceKind.SNOW_REPORT)
+    now = utcnow()
+    with Session(engine) as session:
+        session.add(
+            SnowReport(
+                source_id="seed-snow_report",
+                fetched_at=now,
+                ski_field="Backfill Field",
+                reported_at=now,
+                new_snow_7d_cm=15.0,
+            )
+        )
+        session.add(
+            SnowReport(
+                source_id="seed-snow_report",
+                fetched_at=now + timedelta(hours=1),  # fetched after the as_of cutoff below
+                ski_field="Backfill Field",
+                reported_at=now - timedelta(hours=24),  # but claims an in-window prior date
+                new_snow_7d_cm=10.0,
+            )
+        )
+        session.commit()
+
+    response = client.get("/api/widget/snow-report", params={"as_of": now.isoformat()})
+    assert "estimated from the 7-day trend" not in response.text
+
+
+def test_snapshots_endpoint_lists_distinct_fetch_times(client: TestClient, engine: Engine) -> None:
+    _seed_status(engine, SourceKind.SNOW_REPORT)
+    _seed_status(engine, SourceKind.OBSERVATION)
+    now = utcnow()
+    with Session(engine) as session:
+        session.add(
+            SnowReport(
+                source_id="seed-snow_report",
+                fetched_at=now,
+                ski_field="Coronet Peak",
+                reported_at=now,
+            )
+        )
+        session.add(
+            ObservationReading(
+                source_id="seed-observation",
+                fetched_at=now - timedelta(hours=1),
+                station="Coronet AWS",
+                observed_at=now - timedelta(hours=1),
+            )
+        )
+        session.commit()
+
+    response = client.get("/api/snapshots")
+    assert response.status_code == 200
+    assert (now - timedelta(hours=1)).isoformat() in response.text
+    assert now.isoformat() in response.text
+
+
+def test_snapshots_endpoint_empty_shows_no_history(client: TestClient) -> None:
+    response = client.get("/api/snapshots")
+    assert response.status_code == 200
+    assert "No history yet" in response.text

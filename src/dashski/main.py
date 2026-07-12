@@ -1,3 +1,4 @@
+import json
 import os
 from collections.abc import AsyncGenerator, Callable, Sequence
 from contextlib import asynccontextmanager
@@ -128,19 +129,25 @@ def widget_forecast(request: Request, session: SessionDep) -> HTMLResponse:
     )
 
 
+def _parse_as_of(as_of: str | None) -> datetime | None:
+    """Empty string (an unset hx-include field) and missing both mean Live."""
+    return datetime.fromisoformat(as_of) if as_of else None
+
+
 @app.get("/api/widget/observation", response_class=HTMLResponse)
-def widget_observation(request: Request, session: SessionDep) -> HTMLResponse:
-    recent = session.exec(
-        select(ObservationReading)
-        .order_by(col(ObservationReading.fetched_at).desc())
-        .limit(_HISTORY_SCAN_LIMIT)
-    ).all()
+def widget_observation(
+    request: Request, session: SessionDep, as_of: str | None = None
+) -> HTMLResponse:
+    as_of_dt = _parse_as_of(as_of)
+    query = select(ObservationReading).order_by(col(ObservationReading.fetched_at).desc())
+    if as_of_dt is not None:
+        query = query.where(col(ObservationReading.fetched_at) <= as_of_dt)
+    recent = session.exec(query.limit(_HISTORY_SCAN_LIMIT)).all()
     readings = _latest_by_identity(recent, lambda r: (r.source_id, r.station))[:20]
-    return templates.TemplateResponse(
-        request,
-        "_widget_observation.html",
-        {"readings": readings, "freshness": _freshness(_statuses(session, SourceKind.OBSERVATION))},
-    )
+    context: dict[str, object] = {"readings": readings, "as_of": as_of_dt}
+    if as_of_dt is None:
+        context["freshness"] = _freshness(_statuses(session, SourceKind.OBSERVATION))
+    return templates.TemplateResponse(request, "_widget_observation.html", context)
 
 
 _CALC_24H_MIN_GAP = timedelta(hours=18)
@@ -156,16 +163,24 @@ class SnowReportRow:
     new_snow_24h_calculated: bool
 
 
-def _prior_snow_report(session: Session, report: SnowReport) -> SnowReport | None:
-    """The same field's most recent report strictly before this one — the "yesterday" baseline."""
-    return session.exec(
+def _prior_snow_report(
+    session: Session, report: SnowReport, as_of: datetime | None
+) -> SnowReport | None:
+    """The same field's most recent report strictly before this one — the "yesterday" baseline.
+
+    Bound by the same `as_of` cutoff as the report itself (ADR 0009) — otherwise a frozen
+    snapshot could compute its 24h figure from a report that, as of that snapshot, hadn't
+    been fetched yet.
+    """
+    query = (
         select(SnowReport)
         .where(col(SnowReport.source_id) == report.source_id)
         .where(col(SnowReport.ski_field) == report.ski_field)
         .where(col(SnowReport.reported_at) < report.reported_at)
-        .order_by(col(SnowReport.reported_at).desc())
-        .limit(1)
-    ).first()
+    )
+    if as_of is not None:
+        query = query.where(col(SnowReport.fetched_at) <= as_of)
+    return session.exec(query.order_by(col(SnowReport.reported_at).desc()).limit(1)).first()
 
 
 def _snow_24h(report: SnowReport, prior: SnowReport | None) -> tuple[float | None, bool]:
@@ -187,23 +202,43 @@ def _snow_24h(report: SnowReport, prior: SnowReport | None) -> tuple[float | Non
 
 
 @app.get("/api/widget/snow-report", response_class=HTMLResponse)
-def widget_snow_report(request: Request, session: SessionDep) -> HTMLResponse:
-    recent = session.exec(
-        select(SnowReport).order_by(col(SnowReport.fetched_at).desc()).limit(_HISTORY_SCAN_LIMIT)
-    ).all()
+def widget_snow_report(
+    request: Request, session: SessionDep, as_of: str | None = None
+) -> HTMLResponse:
+    as_of_dt = _parse_as_of(as_of)
+    query = select(SnowReport).order_by(col(SnowReport.fetched_at).desc())
+    if as_of_dt is not None:
+        query = query.where(col(SnowReport.fetched_at) <= as_of_dt)
+    recent = session.exec(query.limit(_HISTORY_SCAN_LIMIT)).all()
     latest = _latest_by_identity(recent, lambda r: (r.source_id, r.ski_field))[:20]
     rows = []
     for report in latest:
-        snow_24h, calculated = _snow_24h(report, _prior_snow_report(session, report))
+        snow_24h, calculated = _snow_24h(report, _prior_snow_report(session, report, as_of_dt))
         rows.append(
             SnowReportRow(
                 report=report, new_snow_24h_cm=snow_24h, new_snow_24h_calculated=calculated
             )
         )
+    context: dict[str, object] = {"rows": rows, "as_of": as_of_dt}
+    if as_of_dt is None:
+        context["freshness"] = _freshness(_statuses(session, SourceKind.SNOW_REPORT))
+    return templates.TemplateResponse(request, "_widget_snow_report.html", context)
+
+
+def _snapshot_times(session: Session) -> list[datetime]:
+    """Every distinct moment an As-Of-eligible widget's known state changed (ADR 0010)."""
+    snow_times = session.exec(select(SnowReport.fetched_at)).all()
+    obs_times = session.exec(select(ObservationReading.fetched_at)).all()
+    return sorted({*snow_times, *obs_times})
+
+
+@app.get("/api/snapshots", response_class=HTMLResponse)
+def snapshots(request: Request, session: SessionDep) -> HTMLResponse:
+    times = _snapshot_times(session)
     return templates.TemplateResponse(
         request,
-        "_widget_snow_report.html",
-        {"rows": rows, "freshness": _freshness(_statuses(session, SourceKind.SNOW_REPORT))},
+        "_asof_slider.html",
+        {"snapshots": times, "snapshots_json": json.dumps([t.isoformat() for t in times])},
     )
 
 

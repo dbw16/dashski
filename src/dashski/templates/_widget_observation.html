@@ -1,9 +1,16 @@
 <h2>Observations</h2>
-<p class="freshness{% if freshness.stale %} freshness-stale{% endif %}">
-  <span class="status-dot{% if freshness.stale %} status-dot-warn{% endif %}"
-        aria-hidden="true"></span>
-  {{ freshness.label }}
-</p>
+{% if as_of %}
+  <p class="freshness asof-banner">
+    <span class="status-dot" aria-hidden="true"></span>
+    Snapshot from {{ as_of.strftime("%a %d %b, %H:%M") }} UTC
+  </p>
+{% else %}
+  <p class="freshness{% if freshness.stale %} freshness-stale{% endif %}">
+    <span class="status-dot{% if freshness.stale %} status-dot-warn{% endif %}"
+          aria-hidden="true"></span>
+    {{ freshness.label }}
+  </p>
+{% endif %}
 {% if readings %}
   <div class="table-scroll">
     <table class="readings">
@@ -30,5 +37,5 @@
     </table>
   </div>
 {% else %}
-  <p class="muted">No observation data yet.</p>
+  <p class="muted">No observation data {% if as_of %}as of this snapshot{% else %}yet{% endif %}.</p>
 {% endif %}
