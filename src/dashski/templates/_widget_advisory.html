@@ -53,6 +53,41 @@
                 </li>
               {% endfor %}
             </ul>
+          {% endif %}
+          {# Outside the absent guard: a region whose season just ended has no
+             current ratings but a strip worth seeing. #}
+          {% if row.history %}
+            <figure class="history" style="--history-days: {{ row.history.days }}">
+              <figcaption>Danger, last {{ row.history.days }} days</figcaption>
+              <div class="history-grid">
+                {% for band in row.history.rows %}
+                  <span class="history-band">
+                    <span class="meta-long">{{ band.label }}</span>
+                    <span class="meta-short">{{ band.short }}</span>
+                  </span>
+                  <div class="history-strip"
+                       role="img"
+                       aria-label="{{ band.label }}, daily danger rating">
+                    {% for cell in band.cells %}
+                      <span class="history-cell band-{{ cell.tone }}"
+                            title="{{ cell.label }} — {{ cell.name }}">
+                        {# Negative ratings are non-ratings, so only 1-5 print a digit. #}
+                        {% if cell.rating and cell.rating > 0 %}{{ cell.rating }}{% endif %}
+                      </span>
+                    {% endfor %}
+                  </div>
+                {% endfor %}
+                <p class="history-ticks">
+                  {% for tick in row.history.ticks %}<span>{{ tick }}</span>{% endfor %}
+                </p>
+              </div>
+              <p class="history-legend">
+                <span class="history-key">Low<span class="history-ramp"></span>Extreme</span>
+                <span class="history-key"><span class="history-swatch band-empty"></span>No advisory</span>
+              </p>
+            </figure>
+          {% endif %}
+          {% if not row.absent %}
             {% if row.problems %}
               <ul class="problems">
                 {% for p in row.problems %}

@@ -126,9 +126,10 @@ def test_picks_newest_issued_advisory_within_one_fetch(client: TestClient, engin
 
     response = client.get("/api/widget/advisory")
 
-    # Asserting on the tone class, not the label — "High" also matches "High Alpine".
-    assert "band-1" in response.text
-    assert "band-4" not in response.text
+    # Asserting on the summary pill, not a bare tone class: yesterday's rating is
+    # legitimately still on the page, in the history strip.
+    assert "band-pill band-1" in response.text
+    assert "band-pill band-4" not in response.text
 
 
 def test_advisory_past_validity_is_flagged_expired(client: TestClient, engine: Engine) -> None:
@@ -149,7 +150,12 @@ def test_advisory_older_than_a_week_withholds_ratings(client: TestClient, engine
     response = client.get("/api/widget/advisory")
 
     assert "No current advisory" in response.text
-    assert "Moderate" not in response.text
+    # No rating is presented as current, in the summary or the opened pane. The
+    # history strip still shows the advisory nine days back — dated, and with
+    # nine blank days after it, which is the honest picture rather than a claim.
+    assert "band-pill" not in response.text
+    assert "band-rating" not in response.text
+    assert "— Moderate" in response.text  # only reachable now as a dated strip cell
     assert "avalanche.net.nz/region/queenstown" in response.text
 
 
@@ -174,8 +180,8 @@ def test_as_of_shows_advisory_known_at_that_snapshot(client: TestClient, engine:
 
     response = client.get("/api/widget/advisory", params={"as_of": older.isoformat()})
 
-    assert "band-4" in response.text
-    assert "band-1" not in response.text
+    assert "band-pill band-4" in response.text
+    assert "band-pill band-1" not in response.text
     assert "Snapshot from" in response.text
 
 
@@ -199,6 +205,73 @@ def test_advisory_fetch_times_appear_in_snapshots(client: TestClient, engine: En
     response = client.get("/api/snapshots")
 
     assert fetched_at.isoformat() in response.text
+
+
+AS_OF_22_JUL = datetime(2026, 7, 22)
+"""A fixed viewing position, so the strip's 30 days are a known set of dates."""
+
+
+def test_history_strip_shows_a_cell_per_day_per_band(client: TestClient, engine: Engine) -> None:
+    _seed_status(engine)
+    _seed_advisory(engine, "Queenstown", issued_at=utcnow(), bands=(3, 2, -2))
+
+    response = client.get("/api/widget/advisory")
+
+    assert "Danger, last 30 days" in response.text
+    assert response.text.count("history-cell") == 90  # 3 bands x 30 days
+    assert response.text.count("history-cell band-empty") == 87  # 29 blank days x 3
+
+
+def test_history_strip_buckets_a_day_in_nz_time(client: TestClient, engine: Engine) -> None:
+    """13:00 UTC is already tomorrow in NZ, and NZ days are the ones we tour in."""
+    _seed_status(engine)
+    issued = datetime(2026, 7, 20, 13, 0)  # Tue 21 Jul 01:00 NZ
+    _seed_advisory(engine, "Queenstown", issued_at=issued, fetched_at=issued, bands=(4, 4, 4))
+
+    response = client.get("/api/widget/advisory", params={"as_of": AS_OF_22_JUL.isoformat()})
+
+    assert 'title="Tue 21 Jul — High"' in response.text
+    assert 'title="Mon 20 Jul — No advisory"' in response.text
+
+
+def test_history_strip_keeps_the_latest_advisory_of_a_day(
+    client: TestClient, engine: Engine
+) -> None:
+    _seed_status(engine)
+    morning = datetime(2026, 7, 20, 2, 0)  # Mon 20 Jul 14:00 NZ
+    evening = datetime(2026, 7, 20, 7, 0)  # Mon 20 Jul 19:00 NZ
+    _seed_advisory(engine, "Queenstown", issued_at=morning, fetched_at=morning, bands=(1, 1, 1))
+    _seed_advisory(engine, "Queenstown", issued_at=evening, fetched_at=evening, bands=(4, 4, 4))
+
+    response = client.get("/api/widget/advisory", params={"as_of": AS_OF_22_JUL.isoformat()})
+
+    assert 'title="Mon 20 Jul — High"' in response.text
+    assert 'title="Mon 20 Jul — Low"' not in response.text
+
+
+def test_history_strip_omitted_when_the_window_is_empty(client: TestClient, engine: Engine) -> None:
+    """Out of season there is nothing to plot — 90 blank cells would say nothing."""
+    _seed_status(engine)
+    _seed_advisory(engine, "Queenstown", issued_at=utcnow() - timedelta(days=200))
+
+    response = client.get("/api/widget/advisory")
+
+    assert "No current advisory" in response.text
+    assert "history-cell" not in response.text
+
+
+def test_history_strip_respects_the_as_of_position(client: TestClient, engine: Engine) -> None:
+    """A snapshot must not show ratings that were only fetched afterwards."""
+    _seed_status(engine)
+    monday = datetime(2026, 7, 20, 2, 0)  # Mon 20 Jul 14:00 NZ
+    wednesday = datetime(2026, 7, 22, 2, 0)  # Wed 22 Jul 14:00 NZ
+    _seed_advisory(engine, "Queenstown", issued_at=monday, fetched_at=monday, bands=(4, 4, 4))
+    _seed_advisory(engine, "Queenstown", issued_at=wednesday, fetched_at=wednesday, bands=(1, 1, 1))
+
+    response = client.get("/api/widget/advisory", params={"as_of": monday.isoformat()})
+
+    assert 'title="Mon 20 Jul — High"' in response.text
+    assert 'title="Wed 22 Jul — Low"' not in response.text
 
 
 def test_empty_state(client: TestClient) -> None:

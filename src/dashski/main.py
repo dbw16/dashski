@@ -12,6 +12,7 @@ from fastapi import Depends, FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from sqlalchemy import select as sa_select
 from sqlmodel import Session, col, select
 
 from dashski import advisory as advisory_view
@@ -130,6 +131,35 @@ def _parse_as_of(as_of: str | None) -> datetime | None:
     return datetime.fromisoformat(as_of) if as_of else None
 
 
+def _band_history(
+    session: Session, as_of: datetime | None, now: datetime
+) -> dict[str, list[advisory_view.BandReading]]:
+    """Band ratings issued within the history window, grouped by region.
+
+    Five columns rather than whole advisories: the strip spans 30 days across
+    every region, and the prose fields average ~1.7KB a row, so loading them to
+    render 1440 integers would make each poll megabytes. That is also why this
+    goes through SQLAlchemy's `select` — SQLModel's is typed only to four
+    columns. Bounded by `issued_at`, which the strip buckets on; a local day
+    starts up to 13h before the UTC cutoff, so the window is wide enough.
+    """
+    query = sa_select(
+        col(AvalancheAdvisory.region),
+        col(AvalancheAdvisory.issued_at),
+        col(AvalancheAdvisory.danger_high_alpine),
+        col(AvalancheAdvisory.danger_alpine),
+        col(AvalancheAdvisory.danger_sub_alpine),
+    ).where(col(AvalancheAdvisory.issued_at) >= now - advisory_view.HISTORY_WINDOW)
+    if as_of is not None:
+        query = query.where(col(AvalancheAdvisory.fetched_at) <= as_of)
+
+    history: dict[str, list[advisory_view.BandReading]] = {}
+    for region, issued_at, high_alpine, alpine, sub_alpine in session.execute(query).all():
+        reading = advisory_view.BandReading(issued_at, (high_alpine, alpine, sub_alpine))
+        history.setdefault(region, []).append(reading)
+    return history
+
+
 @app.get("/api/widget/advisory", response_class=HTMLResponse)
 def widget_advisory(
     request: Request, session: SessionDep, as_of: str | None = None
@@ -145,7 +175,10 @@ def widget_advisory(
     # One fetch stores several advisories per region under a single fetched_at, so
     # the secondary issued_at ordering above is what makes this pick the newest.
     latest = _latest_by_identity(recent, lambda a: (a.source_id, a.region))
-    rows = advisory_view.build_rows(latest, as_of_dt or utcnow())
+    now = as_of_dt or utcnow()
+    rows = advisory_view.build_rows(
+        latest, now, history=_band_history(session, as_of_dt, now), tz=NZ
+    )
 
     context: dict[str, object] = {
         "rows": rows,

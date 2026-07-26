@@ -5,9 +5,9 @@ logic than the table-shaped widgets do.
 """
 
 import math
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import UTC, date, datetime, timedelta, tzinfo
 
 from dashski.models import AvalancheAdvisory, AvalancheProblem
 from dashski.sources.nzaa_advisory import ASPECT_ORDER, REGIONS, advisory_url
@@ -17,6 +17,11 @@ EXPIRES_AFTER = timedelta(hours=24)
 
 ABSENT_AFTER = timedelta(days=7)
 """Beyond a week there is no season on — showing danger ratings would mislead."""
+
+HISTORY_DAYS = 30
+HISTORY_WINDOW = timedelta(days=HISTORY_DAYS)
+"""How far back the per-region danger strip reaches. Also bounds the query that
+feeds it, so the two cannot drift apart."""
 
 DANGER_LABELS = {1: "Low", 2: "Moderate", 3: "Considerable", 4: "High", 5: "Extreme"}
 NON_RATING_LABELS = {-2: "Insufficient snow"}
@@ -75,6 +80,49 @@ class ProblemRow:
 
 
 @dataclass(frozen=True)
+class BandReading:
+    """The three band ratings one advisory published, and when it was issued.
+
+    All the danger strip needs from an advisory. Kept separate from
+    `AvalancheAdvisory` so the strip's query can skip the prose columns.
+    """
+
+    issued_at: datetime
+    ratings: tuple[int | None, int | None, int | None]
+
+
+@dataclass(frozen=True)
+class HistoryCell:
+    """One elevation band's rating on one day of the strip."""
+
+    label: str
+    """The day, e.g. "Tue 14 Jul" — the cell's tooltip and accessible name."""
+    rating: int | None
+    name: str
+    tone: str
+    """CSS token: "1".."5", "none" for a non-rating, "empty" for no advisory."""
+
+
+@dataclass(frozen=True)
+class HistoryRow:
+    """One elevation band's run of daily cells, oldest first."""
+
+    label: str
+    short: str
+    cells: tuple[HistoryCell, ...]
+
+
+@dataclass(frozen=True)
+class History:
+    """A region's last 30 days of danger ratings, as three aligned day strips."""
+
+    rows: tuple[HistoryRow, ...]
+    ticks: tuple[str, ...]
+    """Three date labels — start, middle, end — under the strip."""
+    days: int
+
+
+@dataclass(frozen=True)
 class AdvisoryRow:
     """One region's advisory as the widget presents it."""
 
@@ -86,6 +134,8 @@ class AdvisoryRow:
     absent: bool
     """True when the newest advisory predates the viewing time by more than a
     week — out of season, so the widget withholds ratings entirely."""
+    history: History | None
+    """None when no advisory in the window — an all-blank strip says nothing."""
 
 
 def _band(index: int, rating: int | None) -> DangerBand:
@@ -110,7 +160,60 @@ def _problem_row(problem: AvalancheProblem) -> ProblemRow:
     return ProblemRow(problem, frozenset(aspects), " · ".join(detail), size)
 
 
-def build_rows(advisories: Sequence[AvalancheAdvisory], now: datetime) -> list[AdvisoryRow]:
+def _local_day(moment: datetime, tz: tzinfo) -> date:
+    """The calendar day a stored (naive UTC) moment falls on, locally."""
+    return moment.replace(tzinfo=UTC).astimezone(tz).date()
+
+
+def _history_cell(day: date, reading: BandReading | None, index: int) -> HistoryCell:
+    label = day.strftime("%a %d %b")
+    if reading is None:
+        return HistoryCell(label, None, "No advisory", "empty")
+    band = _band(index, reading.ratings[index])
+    return HistoryCell(label, band.rating, band.name, band.tone)
+
+
+def build_history(readings: Sequence[BandReading], now: datetime, tz: tzinfo) -> History | None:
+    """The 30 days up to `now` as one cell per local day per elevation band.
+
+    Days are local days: an advisory issued at 19:00 NZ belongs to that evening,
+    not to the UTC day it rolls into. Where a day carries more than one advisory
+    the latest issued wins — that is what a reader that day saw last. Returns
+    None when the window holds nothing, so an off-season region renders no strip
+    rather than 90 blank cells.
+    """
+    end = _local_day(now, tz)
+    days = [end - timedelta(days=offset) for offset in reversed(range(HISTORY_DAYS))]
+
+    by_day: dict[date, BandReading] = {}
+    for reading in sorted(readings, key=lambda r: r.issued_at):
+        by_day[_local_day(reading.issued_at, tz)] = reading
+    if not by_day.keys() & set(days):
+        return None
+
+    return History(
+        rows=tuple(
+            HistoryRow(
+                label=BAND_LABELS[index],
+                short=BAND_SHORT[index],
+                cells=tuple(_history_cell(day, by_day.get(day), index) for day in days),
+            )
+            for index in range(len(BAND_LABELS))
+        ),
+        # No "today" on the right: with the As Of slider the strip's end is
+        # wherever the reader is standing, which is not always today.
+        ticks=tuple(days[i].strftime("%d %b") for i in (0, len(days) // 2, -1)),
+        days=len(days),
+    )
+
+
+def build_rows(
+    advisories: Sequence[AvalancheAdvisory],
+    now: datetime,
+    *,
+    history: Mapping[str, Sequence[BandReading]],
+    tz: tzinfo,
+) -> list[AdvisoryRow]:
     """Order advisories by our region list and classify each against `now`.
 
     `now` is the As Of position, not wall clock — an advisory that was already a
@@ -136,6 +239,7 @@ def build_rows(advisories: Sequence[AvalancheAdvisory], now: datetime) -> list[A
                 url=advisory_url(region),
                 expired=age > EXPIRES_AFTER,
                 absent=age > ABSENT_AFTER,
+                history=build_history(history.get(region.name, ()), now, tz),
             )
         )
     return rows

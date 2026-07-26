@@ -8,6 +8,21 @@
   --series-1: #2a78d6;
   --status-good: #0ca30c;
   --status-warn: #b45309;
+
+  /* The international avalanche danger scale, 1 Low .. 5 Extreme. Identical in
+     both themes by design — the colours carry the meaning — so each ships with
+     its own ink rather than inheriting theme text. Declared here, not inside
+     .band-N, so the history strip's legend can draw the same ramp. */
+  --danger-1: #52ba4a;
+  --danger-1-ink: #06230a;
+  --danger-2: #fff300;
+  --danger-2-ink: #2b2600;
+  --danger-3: #f79218;
+  --danger-3-ink: #2e1700;
+  --danger-4: #ee1c25;
+  --danger-4-ink: #ffffff;
+  --danger-5: #17171a;
+  --danger-5-ink: #ee1c25;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -371,6 +386,12 @@ body {
   opacity: 0.55;
 }
 
+/* The history strip is exempt: every cell is dated, so it makes no claim about
+   now, and washing out the scale colours only makes it harder to read. */
+.advisory-expired .history {
+  opacity: 1;
+}
+
 .advisory-detail > :first-child {
   margin-top: 0;
 }
@@ -411,35 +432,133 @@ body {
 }
 
 .band-1 {
-  background: #52ba4a;
-  color: #06230a;
+  background: var(--danger-1);
+  color: var(--danger-1-ink);
 }
 
 .band-2 {
-  background: #fff300;
-  color: #2b2600;
+  background: var(--danger-2);
+  color: var(--danger-2-ink);
 }
 
 .band-3 {
-  background: #f79218;
-  color: #2e1700;
+  background: var(--danger-3);
+  color: var(--danger-3-ink);
 }
 
 .band-4 {
-  background: #ee1c25;
-  color: #ffffff;
+  background: var(--danger-4);
+  color: var(--danger-4-ink);
 }
 
 .band-5 {
-  background: #17171a;
-  color: #ee1c25;
-  border: 1px solid #ee1c25;
+  background: var(--danger-5);
+  color: var(--danger-5-ink);
+  border: 1px solid var(--danger-5-ink);
 }
 
 .band-none {
   background: transparent;
   border: 1px dashed var(--border);
   color: var(--text-muted);
+}
+
+/* No advisory that day — a flat neutral, so a gap in the strip reads as absence
+   rather than as some sixth rating. */
+.band-empty {
+  background: var(--border);
+}
+
+/* 30-day danger strip
+   Three day-aligned rows of one cell per local day, filled with the same scale
+   swatches as the ratings above — the colours are the encoding, the digit and
+   the tooltip spell it out. Full detail width, not the .bands column: 30 cells
+   need the room to stay legible. */
+.history {
+  margin: 16px 0 0;
+}
+
+.history figcaption {
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.history-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 3px 8px;
+}
+
+.history-band {
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.history-strip {
+  display: grid;
+  grid-template-columns: repeat(var(--history-days), 1fr);
+  gap: 2px;
+}
+
+.history-cell {
+  display: grid;
+  place-items: center;
+  height: 20px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+}
+
+/* Sits under the strips, in their column — no spacer cell in the markup. */
+.history-ticks {
+  grid-column: 2;
+  display: flex;
+  justify-content: space-between;
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.history-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.history-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* One continuous ramp rather than five labelled swatches: the scale is ordinal,
+   and five more copies of "Moderate"/"Considerable" per region is noise next to
+   cells that already carry the digit and the full name in their tooltip. */
+.history-ramp {
+  width: 64px;
+  height: 10px;
+  border-radius: 2px;
+  background: linear-gradient(
+    to right,
+    var(--danger-1),
+    var(--danger-2),
+    var(--danger-3),
+    var(--danger-4),
+    var(--danger-5)
+  );
+}
+
+.history-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
 }
 
 .problems {
@@ -587,5 +706,17 @@ body {
   .rose {
     width: 32px;
     height: 32px;
+  }
+
+  /* A month of digits will not fit across a phone, so the strip goes
+     colour-only here — 30 days at a glance is the point of it. */
+  .history-strip {
+    gap: 1px;
+  }
+
+  .history-cell {
+    height: 16px;
+    border-radius: 2px;
+    font-size: 0;
   }
 }
