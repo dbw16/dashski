@@ -72,6 +72,22 @@ name panics in 5.26.0 (`Option::unwrap() on a None value`). Get the ID with:
 railway list --json   # → services[].node.id
 ```
 
+## Deduping stored advisories
+
+`run_source` skips identical refetches (ADR 0016), but rows written before that
+existed are one-per-fetch. `dashski.dedupe` collapses them; it reports by
+default and writes `data/dashski.db.bak` before deleting:
+
+```
+railway ssh --service <service-id> -- '/app/.venv/bin/python -m dashski.dedupe'
+railway ssh --service <service-id> -- '/app/.venv/bin/python -m dashski.dedupe --apply'
+```
+
+`railway ssh` re-joins its arguments and hands them to a remote shell, so local
+quoting is stripped — the quotes have to survive as literals. Wrap the whole
+remote command in single quotes as above (or `-- sh -c "'a && b'"` when you need
+a compound command), or the words scatter into separate arguments.
+
 No `DASHSKI_DB_URL` override is needed: `db.py`'s default path is the relative
 `data/dashski.db`, and the container's cwd is `/app`, so it resolves onto the
 volume automatically.

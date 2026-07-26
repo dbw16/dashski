@@ -24,5 +24,10 @@ The comparison is scoped to rows with the same `(source_id, region,
 issued_at)` rather than scanning history — that is the same publication, of
 which dedupe leaves at most a handful of edited versions.
 
-Existing rows aren't backfilled or cleaned up. There are no migrations here
-(ADR 0015): the duplicate history already in the DB stays until it's nuked.
+Rows stored before this existed are cleaned up by `dashski.dedupe`, a one-off
+that applies the same comparison to history and keeps the earliest of each
+identical set, so the Snapshot that first showed an advisory is the one that
+survives. It reports by default and takes a backup of the SQLite file before
+deleting: there are no migrations to roll back here (ADR 0015), so the copy is
+the only undo. Run on production 2026-07-26: 209 advisories over 14 Snapshots
+became 21 over 4, with all 8 regions intact.
