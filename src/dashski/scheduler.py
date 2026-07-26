@@ -16,11 +16,12 @@ from dashski.models import AvalancheAdvisory, FetchRun, RawFetch, Reading, Sourc
 from dashski.sources.base import Source
 
 
-def _already_stored(session: Session, reading: Reading) -> bool:
+def already_stored(session: Session, reading: Reading) -> bool:
     """True when this exact advisory is already in the DB — a refetch of what we have.
 
     Compared against the versions of the same publication (same region, same
-    issued_at), of which dedupe leaves at most a handful (ADR 0016).
+    issued_at), of which dedupe leaves at most a handful (ADR 0016). Backfill
+    reuses this so a re-run stores nothing it already has.
     """
     existing = session.exec(
         select(AvalancheAdvisory).where(
@@ -53,7 +54,7 @@ def run_source(source: Source, engine: Engine) -> bool:
             session.add(raw_row)
 
             for reading in source.parse(raw):
-                if not _already_stored(session, reading):
+                if not already_stored(session, reading):
                     session.add(reading)
             status.last_success_at = utcnow()
             status.last_error = None

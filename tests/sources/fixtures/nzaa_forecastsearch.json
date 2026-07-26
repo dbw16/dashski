@@ -1,0 +1,117 @@
+{
+    "forecast": {
+        "id": 26459,
+        "lastEdited": "2025-08-15 05:29:45",
+        "created": "2025-08-14 21:35:20",
+        "validPeriod": "24hrs",
+        "regionId": 10,
+        "forecaster": "Will  Rowntree",
+        "altitudeDanger": [
+            {
+                "rating": 1,
+                "description": "Generally safe avalanche conditions. Watch for unstable snow on isolated terrain features.",
+                "altitudeFrom": 1800
+            },
+            {
+                "rating": 1,
+                "description": "Generally safe avalanche conditions. Watch for unstable snow on isolated terrain features.",
+                "altitudeTo": 1800,
+                "altitudeFrom": 1200
+            },
+            {
+                "rating": -2,
+                "description": "Insufficient snow.",
+                "altitudeFrom": 1200
+            }
+        ],
+        "avalancheDangers": [
+            {
+                "priority": "Primary",
+                "priority_level": 1,
+                "description": "<p>Small windslabs will have formed around terrain features in the High Alpine.</p>\n<p>Avoid areas of obvious loading on steep entries or in extreme climbing terrain.&nbsp;</p>\n<p>Try and pick terrain with safe runouts if you are concerned about the windslabs. There is a lot of exposed rocks etc that can be hazardous, even in a small avalanche.</p>",
+                "time": {
+                    "start": "00:00:00",
+                    "end": "00:00:00",
+                    "isAllDay": true
+                },
+                "trend": "Increasing",
+                "character": {
+                    "title": "Wind Slab",
+                    "iconUrl": "/assets/DangerCharacter/windslab.jpg"
+                },
+                "likelihood": 1,
+                "size": 1,
+                "aspects": {
+                    "ha": {
+                        "n": 0,
+                        "s": 0,
+                        "se": 0,
+                        "e": 0,
+                        "ne": 0
+                    }
+                }
+            },
+            {
+                "priority": "Secondary",
+                "priority_level": 2,
+                "description": "<p>Another day of warm temps and sun. Loose wet avalanches could be expected on steep sunny slopes in the afternoon.&nbsp;</p>\n<p>Wet or sticky snow can be a sign of instability. If you feel/see loose wet snow moving around you while skiing/riding head to high ground. Try and identify these safe areas before dropping in.</p>",
+                "time": {
+                    "start": "13:00:00",
+                    "end": "16:00:00",
+                    "isAllDay": true
+                },
+                "trend": "Increasing",
+                "character": {
+                    "title": "Loose Wet",
+                    "iconUrl": "/assets/265355727f/loosewet.jpg"
+                },
+                "likelihood": 2,
+                "size": 1,
+                "aspects": {
+                    "a": {
+                        "e": 0,
+                        "w": 0,
+                        "nw": 0,
+                        "n": 0,
+                        "ne": 0
+                    },
+                    "ha": {
+                        "e": 0,
+                        "w": 0,
+                        "nw": 0,
+                        "n": 0,
+                        "ne": 0
+                    }
+                }
+            }
+        ],
+        "dangerRatingForecast": {
+            "rating": 1,
+            "description": "Low"
+        },
+        "importantInformation": "<p>Overnight winds may have formed small windslabs around terrain features in the High Alpine.</p>\n<p>In the afternoon start to think about Loose wet avalanches in steep sunny areas.</p>\n<p>A good day to be moving in the mountains.</p>",
+        "additionalInformation": [
+            {
+                "title": "Recent Avalanche Activity",
+                "content": "<p>No recent activity has been reported.&nbsp;</p>",
+                "icon": "/resources/themes/default/images/additional-info-recent.jpg"
+            },
+            {
+                "title": "Current Snowpack Conditions",
+                "content": "<div class=\"mb-4\">Minor wind transport was observed yesterday afternoon. This will have continued over night and may have formed small wind slabs in the Alpine - High Alpine around terrain features on SE - E - NE aspects.</div>\n<div class=\"mb-4\">Pockets of cold powder still exist in sheltered and shady areas in the Alpine and higher. This snow has dried out with the cold clear nights and surface hoar is also present in a lot of similar areas. Good skiing at the moment but the upper snowpack is weak again. This will need to be monitored ahead of any new snow.</div>\n<div class=\"mb-4\">A melt freeze cycle is underway on sunny slopes at all elevations where the snow exists. Firm in the mornings and soft in the afternoon with developing loose wet avalanche hazard.</div>",
+                "icon": "/resources/themes/default/images/additional-info-snowpack.jpg"
+            },
+            {
+                "title": "Mountain Weather",
+                "content": "<p>Another nice day with overnight winds easing and warm temps, 1900m FAFL.</p>\n",
+                "icon": "/resources/themes/default/images/additional-info-weather.jpg"
+            },
+            {
+                "title": "Sliding Danger",
+                "content": "<p>Slick and hard icy conditions are widespread on all aspects at lower elevations and on sunny slopes at all elevations in the morning. Exercise care and use ice axe and crampons in anticipation of any sliding surface.</p>",
+                "icon": "/resources/themes/default/images/additional-info-sliding.jpg"
+            }
+        ],
+        "metserviceForecastLink": "http://bit.ly/2Kkklf1"
+    }
+}

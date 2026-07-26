@@ -1,15 +1,18 @@
 """NZ Avalanche Advisory source — one fetch covers every region we track.
 
-The site's JSON API is undocumented and ignores query parameters, so `/api/forecast`
-always returns every region's two most recent advisories in one ~130KB payload. We
-fetch it once and filter to REGIONS here rather than registering a source per region
-(ADR 0011).
+The site's JSON API is undocumented. `/api/forecast` is a catch-all route: any
+path suffix or query string returns the same ~130KB payload of every region's two
+most recent advisories. We fetch it once and filter to REGIONS here rather than
+registering a source per region (ADR 0011).
+
+`/api/forecastsearch` is the one endpoint that does read its parameters, and is
+how history is reachable at all — see `fetch_history`.
 """
 
 import json
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -20,8 +23,14 @@ from dashski.models import AvalancheAdvisory, AvalancheProblem, SourceKind
 from dashski.sources.base import RawPayload
 
 API_URL = "https://www.avalanche.net.nz/api/forecast"
+HISTORY_URL = "https://www.avalanche.net.nz/api/forecastsearch"
 SITE_URL = "https://www.avalanche.net.nz"
 USER_AGENT = "dashski/0.1 (+personal snow-conditions dashboard)"
+
+SOURCE_ID = "nzaa-advisory"
+
+HISTORY_BEGINS = date(2018, 3, 13)
+"""Oldest advisory the site holds (id=9). Earlier dates return no forecast."""
 
 NZ = ZoneInfo("Pacific/Auckland")
 
@@ -67,7 +76,7 @@ def advisory_url(region: Region) -> str:
 class NzaaAdvisorySource:
     """Avalanche advisories for the regions in REGIONS, from avalanche.net.nz."""
 
-    source_id = "nzaa-advisory"
+    source_id = SOURCE_ID
     kind = SourceKind.ADVISORY
     interval_seconds = 1800
 
@@ -89,6 +98,38 @@ class NzaaAdvisorySource:
         if not advisories:
             raise ValueError(f"No advisories for regions {sorted(by_region)} in payload")
         return advisories
+
+
+def parse_history(payload: str, region: Region) -> AvalancheAdvisory | None:
+    """One historical advisory, or None when the day predates HISTORY_BEGINS.
+
+    Backfilled rows carry `fetched_at` equal to `issued_at`: we never fetched them
+    when they were live, and the Snapshot they belong at is the moment the advisory
+    was published, not the moment we caught up on it (ADR 0017).
+    """
+    forecast = json.loads(payload)["forecast"]
+    if forecast is None:
+        return None
+    return _advisory(forecast, region, SOURCE_ID, _issued_at(forecast))
+
+
+def fetch_history(region: Region, day: date) -> AvalancheAdvisory | None:
+    """The advisory this region had standing on `day`.
+
+    The endpoint answers with the latest advisory published *at or before* `day`,
+    not one published on it, so consecutive days repeat an advisory that stood for
+    more than a day and off-season days keep returning the season's last one. It
+    also omits `confidenceLevel`/`confidenceReasons`, which live fetches carry —
+    backfilled rows have no confidence.
+    """
+    response = httpx2.get(
+        HISTORY_URL,
+        params={"date": day.isoformat(), "region": region.id},
+        headers={"User-Agent": USER_AGENT},
+        timeout=15.0,
+    )
+    response.raise_for_status()
+    return parse_history(response.text, region)
 
 
 def _advisory(

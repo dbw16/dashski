@@ -1,10 +1,11 @@
 import json
+from datetime import datetime
 from pathlib import Path
 
 import pytest
 
 from dashski.sources.base import RawPayload
-from dashski.sources.nzaa_advisory import NzaaAdvisorySource
+from dashski.sources.nzaa_advisory import REGIONS, NzaaAdvisorySource, parse_history
 
 FIXTURE = Path(__file__).parent / "fixtures" / "nzaa_forecast.json"
 
@@ -129,3 +130,47 @@ def test_raises_when_band_count_changes() -> None:
 
     with pytest.raises(ValueError, match="elevation bands, expected 3"):
         NzaaAdvisorySource().parse(_raw({"forecasts": forecasts}))
+
+
+HISTORY_FIXTURE = Path(__file__).parent / "fixtures" / "nzaa_forecastsearch.json"
+
+
+def _history_payload() -> str:
+    return HISTORY_FIXTURE.read_text(encoding="utf-8")
+
+
+def test_parses_a_historical_advisory() -> None:
+    advisory = parse_history(_history_payload(), REGIONS[0])
+
+    assert advisory is not None
+    assert advisory.region == "Queenstown"
+    assert advisory.forecaster == "Will Rowntree"
+    assert (advisory.danger_high_alpine, advisory.danger_alpine, advisory.danger_sub_alpine) == (
+        1,
+        1,
+        -2,
+    )
+    assert [p.character for p in advisory.problems] == ["Wind Slab", "Loose Wet"]
+
+
+def test_historical_advisory_is_snapshotted_at_its_issue_time() -> None:
+    """Backfilled rows were never fetched live, so fetched_at is when it was published."""
+    advisory = parse_history(_history_payload(), REGIONS[0])
+
+    assert advisory is not None
+    assert advisory.fetched_at == advisory.issued_at
+    assert advisory.issued_at == datetime(2025, 8, 14, 17, 29, 45)  # 05:29 NZ -> UTC
+
+
+def test_historical_advisory_has_no_confidence() -> None:
+    """forecastsearch omits the confidence fields that live fetches carry."""
+    advisory = parse_history(_history_payload(), REGIONS[0])
+
+    assert advisory is not None
+    assert advisory.confidence_level is None
+    assert advisory.confidence_reasons is None
+
+
+def test_parses_missing_history_as_none() -> None:
+    """Dates before records begin answer with a null forecast, not an error."""
+    assert parse_history('{"forecast": null}', REGIONS[0]) is None

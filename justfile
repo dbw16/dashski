@@ -30,6 +30,18 @@ logs:
 redeploy:
     railway redeploy --service {{service_id}} --yes
 
+# extend stored advisory history back N days per region; repeatable, resumes where it stopped
+backfill days="30":
+    uv run python -m dashski.backfill --days {{days}}
+
+# what a backfill would store, without writing
+backfill-dry days="30":
+    uv run python -m dashski.backfill --days {{days}} --dry-run
+
+# same, against the deployed db on the Railway volume
+backfill-prod days="30":
+    railway ssh --service {{service_id}} -- python -m dashski.backfill --days {{days}}
+
 # nuke the on-disk sqlite db (volume) and restart so it's recreated fresh
 db-reset:
     railway ssh --service {{service_id}} -- rm -fv /app/data/dashski.db

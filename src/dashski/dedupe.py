@@ -25,7 +25,7 @@ def redundant_advisories(session: Session) -> list[AvalancheAdvisory]:
     """Advisories whose content was already stored by an earlier fetch.
 
     Keyed on `content_key()` alone, which already carries source, region and
-    issued_at — the same comparison `_already_stored` makes at write time.
+    issued_at — the same comparison `already_stored` makes at write time.
     """
     rows = session.exec(
         select(AvalancheAdvisory).order_by(
