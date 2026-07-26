@@ -1,5 +1,8 @@
 # History slider is index-based over discrete Snapshots
 
+> Since ADR 0018 the distinct values are `issued_at`, not `fetched_at`; the
+> index mechanism is unchanged.
+
 The slider's positions are the sorted distinct `fetched_at` values
 (Snapshots) across all readings, not an arbitrary point picked from a
 continuous date range. Native `<input type=range>` only

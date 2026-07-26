@@ -197,14 +197,30 @@ def test_expiry_is_measured_against_the_as_of_position(client: TestClient, engin
     assert "Moderate" in response.text
 
 
-def test_advisory_fetch_times_appear_in_snapshots(client: TestClient, engine: Engine) -> None:
+def test_advisory_issue_times_appear_in_snapshots(client: TestClient, engine: Engine) -> None:
+    """Snapshots anchor on when the forecaster published, not when we fetched (ADR 0018)."""
     _seed_status(engine)
-    fetched_at = utcnow() - timedelta(hours=3)
-    _seed_advisory(engine, "Queenstown", issued_at=fetched_at, fetched_at=fetched_at)
+    issued = utcnow() - timedelta(hours=3)
+    _seed_advisory(engine, "Queenstown", issued_at=issued, fetched_at=utcnow())
 
     response = client.get("/api/snapshots")
 
-    assert fetched_at.isoformat() in response.text
+    assert issued.isoformat() in response.text
+
+
+def test_late_fetched_advisory_appears_at_its_issue_time(
+    client: TestClient, engine: Engine
+) -> None:
+    """An advisory scraped late still shows under an As Of after its issue time (ADR 0018)."""
+    _seed_status(engine)
+    issued = utcnow() - timedelta(hours=6)
+    _seed_advisory(engine, "Queenstown", issued_at=issued, fetched_at=utcnow(), bands=(4, 4, 4))
+
+    response = client.get(
+        "/api/widget/advisory", params={"as_of": (issued + timedelta(hours=1)).isoformat()}
+    )
+
+    assert "band-pill band-4" in response.text
 
 
 AS_OF_22_JUL = datetime(2026, 7, 22)
@@ -261,7 +277,7 @@ def test_history_strip_omitted_when_the_window_is_empty(client: TestClient, engi
 
 
 def test_history_strip_respects_the_as_of_position(client: TestClient, engine: Engine) -> None:
-    """A snapshot must not show ratings that were only fetched afterwards."""
+    """A snapshot must not show ratings that were only issued afterwards."""
     _seed_status(engine)
     monday = datetime(2026, 7, 20, 2, 0)  # Mon 20 Jul 14:00 NZ
     wednesday = datetime(2026, 7, 22, 2, 0)  # Wed 22 Jul 14:00 NZ

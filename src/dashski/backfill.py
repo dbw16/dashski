@@ -12,8 +12,9 @@ only the days it hadn't reached. Run it repeatedly to reach further back.
 
 The frontier is per region, not global — a region we started tracking later has
 its own gap, and a shared frontier would never fill it. The walk excludes the
-frontier day itself, so a backfill only ever writes earlier than any Snapshot we
-already hold; that is what keeps it from reshaping display history (ADR 0017).
+frontier day itself, so a backfill only ever writes earlier than what we already
+hold and never stores a second copy of a publication the live source caught
+(ADR 0017, ADR 0018).
 """
 
 import argparse

@@ -147,7 +147,7 @@ def _band_history(
         col(AvalancheAdvisory.danger_sub_alpine),
     ).where(col(AvalancheAdvisory.issued_at) >= now - advisory_view.HISTORY_WINDOW)
     if as_of is not None:
-        query = query.where(col(AvalancheAdvisory.fetched_at) <= as_of)
+        query = query.where(col(AvalancheAdvisory.issued_at) <= as_of)
 
     history: dict[str, list[advisory_view.BandReading]] = {}
     for region, issued_at, high_alpine, alpine, sub_alpine in session.execute(query).all():
@@ -162,14 +162,15 @@ def widget_advisory(
 ) -> HTMLResponse:
     as_of_dt = _parse_as_of(as_of)
     query = select(AvalancheAdvisory).order_by(
-        col(AvalancheAdvisory.fetched_at).desc(), col(AvalancheAdvisory.issued_at).desc()
+        col(AvalancheAdvisory.issued_at).desc(), col(AvalancheAdvisory.fetched_at).desc()
     )
     if as_of_dt is not None:
-        query = query.where(col(AvalancheAdvisory.fetched_at) <= as_of_dt)
+        query = query.where(col(AvalancheAdvisory.issued_at) <= as_of_dt)
     recent = session.exec(query.limit(_HISTORY_SCAN_LIMIT)).all()
 
-    # One fetch stores several advisories per region under a single fetched_at, so
-    # the secondary issued_at ordering above is what makes this pick the newest.
+    # The same publication can be stored twice — live and backfilled rows differ on
+    # the confidence fields (ADR 0017) — so the fetched_at tiebreak above picks the
+    # live row, which carries more data.
     latest = _latest_by_identity(recent, lambda a: (a.source_id, a.region))
     now = as_of_dt or utcnow()
     rows = advisory_view.build_rows(
@@ -187,8 +188,8 @@ def widget_advisory(
 
 
 def _snapshot_times(session: Session) -> list[datetime]:
-    """Every distinct moment an As-Of-eligible widget's known state changed (ADR 0010)."""
-    return sorted(set(session.exec(select(AvalancheAdvisory.fetched_at)).all()))
+    """Every distinct moment a forecaster published or edited an advisory (ADR 0018)."""
+    return sorted(set(session.exec(select(AvalancheAdvisory.issued_at)).all()))
 
 
 @app.get("/api/snapshots", response_class=HTMLResponse)

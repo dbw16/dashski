@@ -1,5 +1,8 @@
 # As Of anchors on fetched_at, not reported_at/issued_at
 
+> **Superseded by ADR 0018** — As Of now anchors on `issued_at`; this records
+> why fetch time was chosen while it held.
+
 Readings carry two dates: when we fetched them (`fetched_at`) and the
 reading's own claimed date (`issued_at` for an Avalanche Advisory). As Of
 filters "latest reading per region with `fetched_at` ≤ the selected Snapshot" — replaying what the dashboard actually displayed at

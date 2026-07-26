@@ -81,11 +81,10 @@ absent and its ratings are withheld entirely.
 _Avoid_: out of date, stale advisory
 
 **Snapshot**:
-One point in time — a `fetched_at` value shared by readings stored in the
-same fetch — at which the dashboard's known state changed. A fetch that
-returns what is already stored writes nothing and makes no Snapshot, so every
-slider position differs from its neighbours (ADR 0016). The unit the history
-slider steps through.
+One point in time the history slider steps through — an `issued_at` value,
+the moment a forecaster published or last edited an advisory (ADR 0018). A
+fetch that returns what is already stored writes nothing, so every slider
+position differs from its neighbours (ADR 0016).
 _Avoid_: fetch time, timestamp, revision
 
 **As Of**:

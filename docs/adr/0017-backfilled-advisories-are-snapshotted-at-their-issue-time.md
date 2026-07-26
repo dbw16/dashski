@@ -1,5 +1,10 @@
 # Backfilled advisories are snapshotted at their issue time
 
+> **Superseded by ADR 0018** — *everything* is now snapshotted at its issue
+> time, so the `fetched_at = issued_at` mechanism here is retired and backfill
+> stamps its real fetch time. The frontier-exclusive walk and the
+> live/backfill confidence-field mismatch it describes still stand.
+
 The live source only ever sees the two most recent advisories per region, so
 the history slider starts wherever the DB does — after a volume loss or a fresh
 deploy, that is hours. The NZAA's `/api/forecastsearch` answers for a past date

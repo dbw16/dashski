@@ -39,8 +39,8 @@ backfill-dry days="30":
     uv run python -m dashski.backfill --days {{days}} --dry-run
 
 # same, against the deployed db on the Railway volume
-backfill-prod days="30":
-    railway ssh --service {{service_id}} -- python -m dashski.backfill --days {{days}}
+backfill-prod days="30" delay=".10":
+    railway ssh --service {{service_id}} -- python -m dashski.backfill --days {{days}} --delay {{delay}}
 
 # nuke the on-disk sqlite db (volume) and restart so it's recreated fresh
 db-reset:

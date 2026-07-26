@@ -103,14 +103,15 @@ class NzaaAdvisorySource:
 def parse_history(payload: str, region: Region) -> AvalancheAdvisory | None:
     """One historical advisory, or None when the day predates HISTORY_BEGINS.
 
-    Backfilled rows carry `fetched_at` equal to `issued_at`: we never fetched them
-    when they were live, and the Snapshot they belong at is the moment the advisory
-    was published, not the moment we caught up on it (ADR 0017).
+    `fetched_at` is the backfill's own fetch time — plain bookkeeping. Snapshots
+    anchor on `issued_at` (ADR 0018), so no timestamp games are needed for the
+    row to slot into history where the advisory was published.
     """
     forecast = json.loads(payload)["forecast"]
     if forecast is None:
         return None
-    return _advisory(forecast, region, SOURCE_ID, _issued_at(forecast))
+    fetched_at = datetime.now(UTC).replace(tzinfo=None)
+    return _advisory(forecast, region, SOURCE_ID, fetched_at)
 
 
 def fetch_history(region: Region, day: date) -> AvalancheAdvisory | None:

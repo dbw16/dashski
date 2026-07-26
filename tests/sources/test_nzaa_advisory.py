@@ -1,9 +1,10 @@
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import pytest
 
+from dashski.models import utcnow
 from dashski.sources.base import RawPayload
 from dashski.sources.nzaa_advisory import REGIONS, NzaaAdvisorySource, parse_history
 
@@ -153,13 +154,13 @@ def test_parses_a_historical_advisory() -> None:
     assert [p.character for p in advisory.problems] == ["Wind Slab", "Loose Wet"]
 
 
-def test_historical_advisory_is_snapshotted_at_its_issue_time() -> None:
-    """Backfilled rows were never fetched live, so fetched_at is when it was published."""
+def test_historical_advisory_stamps_real_fetch_time() -> None:
+    """Snapshots anchor on issued_at (ADR 0018); fetched_at is backfill bookkeeping."""
     advisory = parse_history(_history_payload(), REGIONS[0])
 
     assert advisory is not None
-    assert advisory.fetched_at == advisory.issued_at
     assert advisory.issued_at == datetime(2025, 8, 14, 17, 29, 45)  # 05:29 NZ -> UTC
+    assert utcnow() - advisory.fetched_at < timedelta(seconds=5)
 
 
 def test_historical_advisory_has_no_confidence() -> None:
