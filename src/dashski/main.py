@@ -51,7 +51,7 @@ NZ = ZoneInfo("Pacific/Auckland")
 South Island dashboard, and mixing zones on one screen invites misreading."""
 
 
-def _nz(value: datetime, fmt: str = "%a %d %b, %H:%M %Z") -> str:
+def _nz(value: datetime, fmt: str = "%a %d %b %Y, %H:%M %Z") -> str:
     return value.replace(tzinfo=UTC).astimezone(NZ).strftime(fmt)
 
 

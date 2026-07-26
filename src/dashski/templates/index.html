@@ -30,9 +30,26 @@
       </section>
     </div>
     <script>
-      function dashskiSnapshots() {
+      // Canonical state is the global snapshot index; the year and date sliders
+      // are projections of it. Parsing and year-grouping are cached because
+      // dragging fires dashskiUpdate per pixel.
+      let dashskiIndex = 0;
+      let dashskiCache = { raw: null, snapshots: [], years: [], yearOf: [] };
+      const dashskiYearFmt = new Intl.DateTimeFormat("en-NZ", {
+        timeZone: "Pacific/Auckland",
+        year: "numeric",
+      });
+
+      function dashskiData() {
         const el = document.querySelector("#asof-slider [data-snapshots]");
-        return el ? JSON.parse(el.dataset.snapshots) : [];
+        const raw = el ? el.dataset.snapshots : "[]";
+        if (raw !== dashskiCache.raw) {
+          const snapshots = JSON.parse(raw);
+          const yearOf = snapshots.map((iso) =>
+            Number(dashskiYearFmt.format(new Date(iso.endsWith("Z") ? iso : iso + "Z"))));
+          dashskiCache = { raw, snapshots, yearOf, years: [...new Set(yearOf)] };
+        }
+        return dashskiCache;
       }
 
       // Polling re-renders the advisory widget, which would collapse whatever
@@ -52,14 +69,25 @@
         });
       });
 
+      // The slider fragment cannot init itself with an inline script: during
+      // the swap the old fragment is still in the DOM ahead of the new one, so
+      // every id lookup would hit the old elements, and htmx's settle phase
+      // then restores the incoming markup's attributes anyway. afterSettle is
+      // the first moment writes stick. Swaps only happen while Live, so
+      // jumping to the newest snapshot is always right.
+      document.body.addEventListener("htmx:afterSettle", (e) => {
+        if (e.detail.target.id !== "asof-slider") return;
+        dashskiUpdate(dashskiData().snapshots.length - 1);
+      });
+
       function dashskiIsLive() {
         const el = document.getElementById("as-of-value");
         return !el || el.value === "";
       }
 
       // Snapshots are naive UTC on the wire; the whole UI reads in NZ local time.
-      // Matches the server's `nz` filter minus the zone suffix — the slider head
-      // is the widest thing on a phone, and every time here is NZ time.
+      // The server's `nz` filter minus zone and year — the slider head is the
+      // widest thing on a phone; the year row and sub line carry the year.
       function dashskiFormatNZ(iso) {
         const d = new Date(iso.endsWith("Z") ? iso : iso + "Z");
         return d
@@ -85,38 +113,65 @@
         return Math.round(hours / 24) + " days ago";
       }
 
+      // The thumb's own position drives the filled portion of the track. The
+      // var lives on the row, not the range: htmx's settle phase restores the
+      // incoming markup's attributes on id-matched elements, so a style set
+      // on #asof-range during a swap is wiped ~20ms later.
+      function dashskiSyncRange(range, value, max) {
+        range.max = max;
+        range.value = value;
+        const fill = max > 0 ? (value / max) * 100 : 100; // lone position: full track
+        range.closest(".asof-controls").style.setProperty("--asof-fill", fill + "%");
+      }
+
       function dashskiUpdate(index) {
-        const snapshots = dashskiSnapshots();
+        const { snapshots, years, yearOf } = dashskiData();
         const range = document.getElementById("asof-range");
         const label = document.getElementById("asof-label");
         const hidden = document.getElementById("as-of-value");
         if (!snapshots.length || !range || !label || !hidden) return;
         index = Math.max(0, Math.min(snapshots.length - 1, Number(index)));
-        range.value = index;
+        dashskiIndex = index;
         const live = index === snapshots.length - 1;
         hidden.value = live ? "" : snapshots[index];
+
+        const year = yearOf[index];
+        const yearStart = yearOf.indexOf(year);
+        const yearCount = yearOf.lastIndexOf(year) - yearStart + 1;
+        dashskiSyncRange(range, index - yearStart, yearCount - 1);
+
+        const yearRange = document.getElementById("asof-year-range");
+        document.querySelector(".asof-year").hidden = years.length < 2;
+        document.getElementById("asof-year-label").textContent = year;
+        dashskiSyncRange(yearRange, years.indexOf(year), years.length - 1);
+        yearRange.setAttribute("aria-valuetext", String(year));
 
         label.textContent = live ? "Live" : dashskiFormatNZ(snapshots[index]);
         document.getElementById("asof-sub").textContent = live
           ? "Newest of " + snapshots.length + (snapshots.length === 1 ? " snapshot" : " snapshots")
-          : dashskiAgo(snapshots[index]) + " · " + (index + 1) + " of " + snapshots.length;
+          : dashskiAgo(snapshots[index]) + " · " + (index - yearStart + 1) + " of " + yearCount
+            + (years.length > 1 ? " in " + year : "");
         document.getElementById("asof-dot").classList.toggle("status-dot-past", !live);
         document.getElementById("asof-live").hidden = live;
 
-        // The thumb's own position drives the filled portion of the track. The
-        // var lives on the wrapper, not the range: htmx's settle phase restores
-        // the incoming markup's attributes on id-matched elements, so a style
-        // set on #asof-range during a swap is wiped ~20ms later.
-        const max = Number(range.max);
-        const fill = max > 0 ? (index / max) * 100 : 100; // lone snapshot: full track
-        range.closest(".asof").style.setProperty("--asof-fill", fill + "%");
         range.setAttribute("aria-valuetext", label.textContent);
         document.body.dispatchEvent(new Event("asof-changed"));
       }
 
+      function dashskiSetOffset(offset) {
+        const { yearOf } = dashskiData();
+        dashskiUpdate(yearOf.indexOf(yearOf[dashskiIndex]) + Number(offset));
+      }
+
+      // Picking a year lands on its newest snapshot, so the newest year is Live.
+      function dashskiSetYear(yearIdx) {
+        const { years, yearOf } = dashskiData();
+        const year = years[Math.max(0, Math.min(years.length - 1, Number(yearIdx)))];
+        dashskiUpdate(yearOf.lastIndexOf(year));
+      }
+
       function dashskiStep(delta) {
-        const range = document.getElementById("asof-range");
-        if (range) dashskiUpdate(Number(range.value) + delta);
+        dashskiUpdate(dashskiIndex + delta);
       }
     </script>
   </body>

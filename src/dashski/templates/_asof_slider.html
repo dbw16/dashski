@@ -14,6 +14,19 @@
               hidden>Back to live</button>
     </div>
     <p class="asof-sub muted" id="asof-sub"></p>
+    {# no id on this row: htmx settle restores incoming attributes on id-matched
+       elements, wiping the hidden toggle and fill var the JS sets on it #}
+    <div class="asof-controls asof-year" hidden>
+      <span class="asof-year-label" id="asof-year-label" aria-hidden="true"></span>
+      <input type="range"
+             id="asof-year-range"
+             class="asof-range"
+             min="0"
+             max="0"
+             value="0"
+             oninput="dashskiSetYear(this.value)"
+             aria-label="Year">
+    </div>
     <div class="asof-controls">
       <button type="button"
               class="btn btn-step"
@@ -25,7 +38,7 @@
              min="0"
              max="{{ snapshots | length - 1 }}"
              value="{{ snapshots | length - 1 }}"
-             oninput="dashskiUpdate(this.value)"
+             oninput="dashskiSetOffset(this.value)"
              aria-label="History position"
              aria-valuetext="Live">
       <button type="button"
@@ -34,7 +47,6 @@
               aria-label="Later snapshot">›</button>
     </div>
   </div>
-  <script>dashskiUpdate({{ snapshots | length - 1 }});</script>
 {% else %}
   <p class="muted">No history yet.</p>
 {% endif %}

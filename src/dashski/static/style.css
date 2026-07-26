@@ -137,7 +137,7 @@ body {
    Built thumb-first for touch: where you are reads big at the top, the drag
    row below is all 48px targets, and "Back to live" appears only once there
    is something to come back from. */
-.asof {
+.asof-controls {
   --asof-fill: 100%; /* JS moves this with the thumb; the default is Live */
 }
 
@@ -177,6 +177,23 @@ body {
   align-items: center;
   gap: 10px;
   margin-top: 8px;
+}
+
+/* Year label and trailing spacer are each as wide as a step button, so the
+   year track lines up with the date track below it. */
+.asof-year-label {
+  flex: none;
+  width: 48px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.asof-year::after {
+  content: "";
+  flex: none;
+  width: 48px;
 }
 
 .btn-step {
