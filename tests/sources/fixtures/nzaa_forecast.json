@@ -1,0 +1,375 @@
+{
+ "forecasts": [
+  {
+   "id": 28352,
+   "lastEdited": "2026-07-25 20:50:09",
+   "created": "2026-07-25 17:44:21",
+   "validPeriod": "24hrs",
+   "regionId": 10,
+   "forecaster": "Will  Rowntree",
+   "altitudeDanger": [
+    {
+     "rating": 1,
+     "description": "Generally safe avalanche conditions. Watch for unstable snow on isolated terrain features.",
+     "altitudeFrom": 1800
+    },
+    {
+     "rating": 1,
+     "description": "Generally safe avalanche conditions. Watch for unstable snow on isolated terrain features.",
+     "altitudeTo": 1800,
+     "altitudeFrom": 1200
+    },
+    {
+     "rating": -2,
+     "description": "Insufficient snow.",
+     "altitudeFrom": 1200
+    }
+   ],
+   "avalancheDangers": [
+    {
+     "priority": "Primary",
+     "priority_level": 1,
+     "description": "<p><span style=\"font-size: 1rem; -webkit-text-size-adjust: 100%;\">Be on the watch for unsupported slopes - avalanche paths that finish in a steep drop or cliff. <br></span></p>\n<p><span style=\"font-size: 1rem; -webkit-text-size-adjust: 100%;\">Pick terrain with clean run outs and practise good group management.&nbsp;</span></p>\n<p>Loading will likely be lower on the slope than ridge top on N slopes after the strong winds.&nbsp;</p>",
+     "time": {
+      "start": "14:00:00",
+      "end": "18:00:00",
+      "isAllDay": true
+     },
+     "trend": "Decreasing",
+     "character": {
+      "title": "Wind Slab",
+      "iconUrl": "/assets/DangerCharacter/windslab.jpg"
+     },
+     "likelihood": 1,
+     "size": 1,
+     "aspects": {
+      "a": {
+       "se": 0,
+       "e": 0,
+       "ne": 0,
+       "n": 0,
+       "nw": 0
+      },
+      "ha": {
+       "se": 0,
+       "nw": 0,
+       "n": 0,
+       "ne": 0,
+       "e": 0
+      }
+     }
+    }
+   ],
+   "importantInformation": "<p>A nice day to be in the mountains.&nbsp;</p>\n<p>Avoid areas of obvious loading with poor runouts.&nbsp;<br><br>Gully features on Northern slopes will hold good snow in the Alpine and High Alpine&nbsp;</p>",
+   "confidenceLevel": "High",
+   "confidenceReasons": [
+    "We are confident due to a stable weather pattern.",
+    "We have a good understanding of the snowpack structure and confidence in the weather forecast."
+   ],
+   "additionalInformation": [
+    {
+     "title": "Recent Avalanche Activity",
+     "content": "<p>More small (less than Size 1) wind slabs were triggered by local ski patrols yesterday.</p>\n<p>These were on slopes lee to the SW and S around &nbsp;terrain features like ridges and cliffs.</p>",
+     "icon": "/resources/themes/default/images/additional-info-recent.jpg",
+     "forecastImages": []
+    },
+    {
+     "title": "Current Snowpack Conditions",
+     "content": "<p>Yesterday\u2019s new snow has bonded well to the old surface.</p>\n<p><span style=\"font-size: 1rem; -webkit-text-size-adjust: 100%;\">It has fallen over a thin and varied snowpack. On exposed NW, W and SW slopes the old surface is either ground or a firm crust.</span></p>\n<p>Shady areas still have faceted snow in the lower snowpack. However recent conditions have promoted rounding (healing) and with extensive testing in the region we have removed Persistent Slab from the avalanche problems. These layers will continue to be monitored as the snowpack develops.</p>\n<p></p>",
+     "icon": "/resources/themes/default/images/additional-info-snowpack.jpg",
+     "forecastImages": []
+    },
+    {
+     "title": "Mountain Weather",
+     "content": "<p>Some morning cloud/light snow clearing quickly. Light winds and cold temps. 1000m FAFL</p>\n",
+     "icon": "/resources/themes/default/images/additional-info-weather.jpg"
+    },
+    {
+     "title": "Sliding Danger",
+     "content": "<p>Expect an icy old surface on sunny (N, NE and E) slopes under the new snow.</p>",
+     "icon": "/resources/themes/default/images/additional-info-sliding.jpg"
+    }
+   ],
+   "metserviceForecastLink": "http://bit.ly/2Kkklf1"
+  },
+  {
+   "id": 28342,
+   "lastEdited": "2026-07-24 20:48:21",
+   "created": "2026-07-24 20:25:51",
+   "validPeriod": "24hrs",
+   "regionId": 10,
+   "forecaster": "Will  Rowntree",
+   "altitudeDanger": [
+    {
+     "rating": 2,
+     "description": "Heightened avalanche conditions on specific terrain features. Evaluate snow and terrain carefully; identify features of concern.",
+     "altitudeFrom": 1800
+    },
+    {
+     "rating": 2,
+     "description": "Heightened avalanche conditions on specific terrain features. Evaluate snow and terrain carefully; identify features of concern.",
+     "altitudeTo": 1800,
+     "altitudeFrom": 1200
+    },
+    {
+     "rating": -2,
+     "description": "Insufficient snow.",
+     "altitudeFrom": 1200
+    }
+   ],
+   "avalancheDangers": [
+    {
+     "priority": "Primary",
+     "priority_level": 1,
+     "description": "<p>The cold snow will be slow to bond to the old surface today.</p>\n<p>Avoid steep entries and obvious loading around terrain features. Pick terrain with clean run outs and practise good group management.</p>\n<p>Expect loading around terrain features even on windward slopes with the forecasted winds.</p>",
+     "time": {
+      "start": "14:00:00",
+      "end": "18:00:00",
+      "isAllDay": false
+     },
+     "trend": "Increasing",
+     "character": {
+      "title": "Wind Slab",
+      "iconUrl": "/assets/DangerCharacter/windslab.jpg"
+     },
+     "likelihood": 2,
+     "size": 1,
+     "aspects": {
+      "ha": {
+       "w": 0,
+       "nw": 0,
+       "n": 0,
+       "ne": 0,
+       "e": 0,
+       "se": 0
+      },
+      "a": {
+       "s": 0,
+       "se": 0,
+       "sw": 0,
+       "e": 0,
+       "ne": 0,
+       "n": 0,
+       "w": 0,
+       "nw": 0
+      }
+     }
+    }
+   ],
+   "importantInformation": "<p>Continued snowfall and cold temperatures today.</p>\n<p>Southerly snow will be slow to bond to the old surface.&nbsp;</p>\n<p>Avoid areas of obvious loading and be cautious of many hidden hazards.</p>",
+   "confidenceLevel": "Moderate",
+   "confidenceReasons": [
+    "We are uncertain about forecast snowfall amounts."
+   ],
+   "additionalInformation": [
+    {
+     "title": "Recent Avalanche Activity",
+     "content": "<p>Multiple size 1 wind slabs were triggered by local ski patrols yesterday.</p>\n<p>These were on slopes lee to the W half (NW, W and SW) and around terrain features like ridges and cliffs.</p>",
+     "icon": "/resources/themes/default/images/additional-info-recent.jpg",
+     "forecastImages": []
+    },
+    {
+     "title": "Current Snowpack Conditions",
+     "content": "<p>Another 5-10cm overnight with continuing snowfall this morning to low elevations.&nbsp;</p>\n<p>Loading up to 50cm lee to the South. This will be slow to bond today with the cold temperatures.</p>\n<p>This most recent snow has fallen over a thin and varied snowpack. On exposed NW, W and SW slopes the old surface is either ground or a firm crust.</p>\n<p>Shady areas still have faceted snow in the lower snowpack. However recent conditions have promoted rounding (healing) and with extensive testing in the region we have removed Persistent Slab from the avalanche problems. These layers will continue to be monitored as the snowpack develops.</p>\n<p></p>",
+     "icon": "/resources/themes/default/images/additional-info-snowpack.jpg",
+     "forecastImages": []
+    },
+    {
+     "title": "Mountain Weather",
+     "content": "<p>Cold temperatures and light snow throughout the day. Moderate S winds and a 600m FAFL.</p>\n",
+     "icon": "/resources/themes/default/images/additional-info-weather.jpg"
+    },
+    {
+     "title": "Sliding Danger",
+     "content": "<p>Expect an icy old surface on sunny (N, NE and E) slopes under the new snow.</p>",
+     "icon": "/resources/themes/default/images/additional-info-sliding.jpg"
+    }
+   ],
+   "metserviceForecastLink": "http://bit.ly/2Kkklf1"
+  },
+  {
+   "id": 28355,
+   "lastEdited": "2026-07-25 19:22:59",
+   "created": "2026-07-25 18:31:10",
+   "validPeriod": "24hrs",
+   "regionId": 11,
+   "forecaster": "Simon Howells",
+   "altitudeDanger": [
+    {
+     "rating": 2,
+     "description": "Heightened avalanche conditions on specific terrain features. Evaluate snow and terrain carefully; identify features of concern.",
+     "altitudeFrom": 1800
+    },
+    {
+     "rating": 2,
+     "description": "Heightened avalanche conditions on specific terrain features. Evaluate snow and terrain carefully; identify features of concern.",
+     "altitudeTo": 1800,
+     "altitudeFrom": 1200
+    },
+    {
+     "rating": 1,
+     "description": "Generally safe avalanche conditions. Watch for unstable snow on isolated terrain features.",
+     "altitudeFrom": 1200
+    }
+   ],
+   "avalancheDangers": [
+    {
+     "priority": "Primary",
+     "priority_level": 1,
+     "description": "<p>Deposits of Wind Slab may be encountered particularly, on slopes facing North through to East above about 1700m. Avoid &nbsp;ridge line entry points and other steep unsupported slopes if you encounter pockets of stiff, wind driven snow. &nbsp; &nbsp; &nbsp; &nbsp;</p>",
+     "time": {
+      "start": "00:00:00",
+      "end": "00:00:00",
+      "isAllDay": true
+     },
+     "trend": "Decreasing",
+     "character": {
+      "title": "Wind Slab",
+      "iconUrl": "/assets/DangerCharacter/windslab.jpg"
+     },
+     "likelihood": 2,
+     "size": 1.5,
+     "aspects": {
+      "a": {
+       "n": 0,
+       "e": 0,
+       "se": 0,
+       "s": 0,
+       "ne": 0
+      },
+      "ha": {
+       "n": 0,
+       "e": 0,
+       "se": 0,
+       "s": 0,
+       "ne": 0
+      }
+     }
+    }
+   ],
+   "importantInformation": "<p>Sunday is shaping up to be a great day for touring with plenty of fresh snow and stable weather.</p>\n<p>Carry avalanche safety gear (transceiver, shovel and probe). &nbsp;</p>\n<p></p>\n<p>&nbsp;&nbsp;</p>\n<p>&nbsp;</p>\n<p>&nbsp; &nbsp;&nbsp;</p>\n<p></p>\n<p>&nbsp;</p>",
+   "confidenceLevel": "High",
+   "confidenceReasons": [
+    "We have a good understanding of the snowpack structure and confidence in the weather forecast."
+   ],
+   "additionalInformation": [
+    {
+     "title": "Recent Avalanche Activity",
+     "content": "<p>No back country avalanches reported over the past 24 hours. Control work at Treble Cone 25/7 produced numerous Wind Slab avalanches on East facing terrain (mostly size 1 and a couple of size 2).&nbsp;</p>\n<p>If you see evidence of avalanches in the back country please enter a Public Observation. &nbsp;</p>",
+     "icon": "/resources/themes/default/images/additional-info-recent.jpg",
+     "forecastImages": []
+    },
+    {
+     "title": "Current Snowpack Conditions",
+     "content": "<p>A significant amount of new snow has fallen over the past 72 hours (50 - 60cm in the Albert Burn and at least 30cm further east). Much of this snow has landed with minimal wind effect. Prior to the storm which arrived mid week, the snow pack was mostly stable. Having said that, facets and depth hoar (weak, sugary forms) have been found in places. These pockets of questionable strength appear to be quite isolated and are most likely to exist in steep, shady areas (facing East to South). &nbsp; &nbsp;</p>",
+     "icon": "/resources/themes/default/images/additional-info-snowpack.jpg",
+     "forecastImages": []
+    },
+    {
+     "title": "Mountain Weather",
+     "content": "<p>Mainly fine with perhaps the odd shower.&nbsp;</p><p>Light winds.&nbsp;</p><p>Freezing level - 600m climbing to 1000m in the morning.&nbsp;</p>\n",
+     "icon": "/resources/themes/default/images/additional-info-weather.jpg"
+    },
+    {
+     "title": "Sliding Danger",
+     "content": "<p>Recent snow will have reduced the sliding danger. However, keep in mind that the underlying pack remains shallow especially, at lower elevations. Rocks and icy areas may be lurking below a thin cover of fresh snow.&nbsp;</p>",
+     "icon": "/resources/themes/default/images/additional-info-sliding.jpg"
+    }
+   ],
+   "metserviceForecastLink": "http://bit.ly/2Kkklf1"
+  },
+  {
+   "id": 28338,
+   "lastEdited": "2026-07-24 19:53:28",
+   "created": "2026-07-24 19:16:35",
+   "validPeriod": "24hrs",
+   "regionId": 11,
+   "forecaster": "Simon Howells",
+   "altitudeDanger": [
+    {
+     "rating": 3,
+     "description": "Dangerous avalanche conditions. Careful snowpack evaluation, cautious route-finding and conservative decision-making essential.",
+     "altitudeFrom": 1800
+    },
+    {
+     "rating": 2,
+     "description": "Heightened avalanche conditions on specific terrain features. Evaluate snow and terrain carefully; identify features of concern.",
+     "altitudeTo": 1800,
+     "altitudeFrom": 1200
+    },
+    {
+     "rating": 1,
+     "description": "Generally safe avalanche conditions. Watch for unstable snow on isolated terrain features.",
+     "altitudeFrom": 1200
+    }
+   ],
+   "avalancheDangers": [
+    {
+     "priority": "Primary",
+     "priority_level": 1,
+     "description": "<p>Deposits of Wind Slab may exist on a range of aspects. However, be particularly wary of slopes facing North through to East above about 1700m. Stay clear of ridge line entry points and other steep unsupported slopes if you encounter stiff, wind driven snow.If unsure, choose moderate angled, wide open slopes. &nbsp; &nbsp; &nbsp; &nbsp;</p>",
+     "time": {
+      "start": "00:00:00",
+      "end": "00:00:00",
+      "isAllDay": true
+     },
+     "trend": "Increasing",
+     "character": {
+      "title": "Wind Slab",
+      "iconUrl": "/assets/DangerCharacter/windslab.jpg"
+     },
+     "likelihood": 3,
+     "size": 2,
+     "aspects": {
+      "a": {
+       "n": 0,
+       "e": 0,
+       "se": 0,
+       "s": 0,
+       "ne": 0
+      },
+      "ha": {
+       "n": 0,
+       "e": 0,
+       "se": 0,
+       "s": 0,
+       "ne": 0
+      }
+     }
+    }
+   ],
+   "importantInformation": "<p>Moderate to strong South West winds are likely to shift fresh snow overnight Friday and on Saturday.&nbsp;</p>\n<p>Expect reactive Wind Slab to exist.&nbsp;</p>\n<p>Careful terrain selection and a conservative approach are advised.&nbsp;</p>\n<p></p>\n<p>&nbsp;&nbsp;</p>\n<p>&nbsp;</p>\n<p>&nbsp; &nbsp;&nbsp;</p>\n<p></p>\n<p>&nbsp;</p>",
+   "confidenceLevel": "Moderate",
+   "confidenceReasons": [
+    "We are confident the likelihood of avalanches will increase with the forecast weather.",
+    "We are uncertain due to a limited number of field observations.",
+    "We are uncertain due to the variability of wind effect on the snowpack."
+   ],
+   "additionalInformation": [
+    {
+     "title": "Recent Avalanche Activity",
+     "content": "<p>Observations have been hampered over the past 48 hours by a North West storm and extended periods of poor visibility .&nbsp;</p>\n<p>If you see evidence of avalanches in the back country please enter a Public Observation. &nbsp;</p>",
+     "icon": "/resources/themes/default/images/additional-info-recent.jpg",
+     "forecastImages": []
+    },
+    {
+     "title": "Current Snowpack Conditions",
+     "content": "<p>A significant amount of new snow has fallen over the past 48 hours (50cm in the Albert Burn and at least 20cm further east). Prior to the most recent storm, the snow pack was mostly stable. Having said that, facets and depth hoar (weak, sugary forms) have been found in places. These pockets of questionable strength are most likely to exist in steep, shady areas (facing East to South). Loading over the next few days will test these layers. &nbsp; &nbsp;</p>",
+     "icon": "/resources/themes/default/images/additional-info-snowpack.jpg",
+     "forecastImages": []
+    },
+    {
+     "title": "Mountain Weather",
+     "content": "<p>Saturday - a few showers clearing to a fine afternoon. Snow possible to 400m. Moderate to strong South West winds dying out. Freezing level - 900m dropping to 600m.&nbsp;</p>\n",
+     "icon": "/resources/themes/default/images/additional-info-weather.jpg"
+    },
+    {
+     "title": "Sliding Danger",
+     "content": "<p>Fresh snow will reduce the sliding danger. However, keep in mind that the underlying snowpack remains shallow with many thinly covered rocks.&nbsp;</p>",
+     "icon": "/resources/themes/default/images/additional-info-sliding.jpg"
+    }
+   ],
+   "metserviceForecastLink": "http://bit.ly/2Kkklf1"
+  }
+ ]
+}

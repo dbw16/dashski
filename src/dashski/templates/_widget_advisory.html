@@ -1,0 +1,113 @@
+<h2>Avalanche advisory</h2>
+{% if as_of %}
+  <p class="freshness asof-banner">
+    <span class="status-dot" aria-hidden="true"></span>
+    Snapshot from {{ as_of | nz }}
+  </p>
+{% else %}
+  <p class="freshness{% if freshness.stale %} freshness-stale{% endif %}">
+    <span class="status-dot{% if freshness.stale %} status-dot-warn{% endif %}"
+          aria-hidden="true"></span>
+    {{ freshness.label }}
+  </p>
+{% endif %}
+{% if rows %}
+  <div class="advisory-regions">
+    {% for row in rows %}
+      {% set a = row.advisory %}
+      <details class="advisory{% if row.expired %} advisory-expired{% endif %}"
+               data-region="{{ a.region }}">
+        <summary class="advisory-summary">
+          <span class="advisory-region">{{ a.region }}</span>
+          {% if row.absent %}
+            <span class="advisory-pills muted">No current advisory — out of season</span>
+          {% else %}
+            <span class="advisory-pills">
+              {% for band in row.bands %}
+                <span class="band-pill band-{{ band.tone }}"
+                      title="{{ band.label }} — {{ band.name }}">
+                  <span class="band-pill-label">{{ band.short }}</span>
+                  <b>{% if band.tone != "none" %}{{ band.rating }}{% else %}–{% endif %}</b>
+                </span>
+              {% endfor %}
+            </span>
+            <span class="advisory-meta">
+              {% if row.expired %}<span class="advisory-flag">Expired</span> ·{% endif %}
+              <span class="meta-long">Issued {{ a.issued_at | nz }}</span>
+              <span class="meta-short">{{ a.issued_at | nz("%d %b") }}</span>
+            </span>
+          {% endif %}
+        </summary>
+        <div class="advisory-detail">
+          {% if not row.absent %}
+            {# Repeated in full because the summary line abbreviates it on a phone. #}
+            <p class="advisory-issued">Issued {{ a.issued_at | nz }}{% if a.forecaster %} · {{ a.forecaster }}{% endif %}</p>
+            <ul class="bands">
+              {% for band in row.bands %}
+                <li class="band">
+                  <span class="band-label">{{ band.label }}</span>
+                  <span class="band-rating band-{{ band.tone }}">
+                    {% if band.tone != "none" %}<b>{{ band.rating }}</b>{% endif %}
+                    {{ band.name }}
+                  </span>
+                </li>
+              {% endfor %}
+            </ul>
+            {% if row.problems %}
+              <ul class="problems">
+                {% for p in row.problems %}
+                  <li class="problem">
+                    <svg class="rose"
+                         viewBox="0 0 32 32"
+                         role="img"
+                         aria-label="Aspects — {{ p.aspect_detail or 'none given' }}">
+                      <title>{{ p.aspect_detail or "No aspects given" }}</title>
+                      {% for aspect, path in aspect_wedges.items() %}
+                        <path d="{{ path }}" class="rose-wedge{% if aspect in p.aspects %} rose-on{% endif %}" />
+                      {% endfor %}
+                    </svg>
+                    <div class="problem-body">
+                      <p class="problem-head">
+                        <span class="problem-name">{{ p.problem.character }}</span>
+                        {% if p.problem.priority %}<span class="chip">{{ p.problem.priority }}</span>{% endif %}
+                        {% if p.problem.likelihood %}<span class="chip">Likelihood {{ p.problem.likelihood }}</span>{% endif %}
+                        {% if p.size_label %}<span class="chip">Size {{ p.size_label }}</span>{% endif %}
+                        {% if p.problem.trend %}<span class="chip">{{ p.problem.trend }}</span>{% endif %}
+                      </p>
+                      {% if p.problem.description %}<p class="prose">{{ p.problem.description }}</p>{% endif %}
+                    </div>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <p class="muted">No avalanche problems listed.</p>
+            {% endif %}
+            {% if a.important_info %}<p class="prose prose-lead">{{ a.important_info }}</p>{% endif %}
+            {% if a.confidence_level %}
+              <p class="advisory-confidence">
+                Confidence: {{ a.confidence_level }}
+                {% if a.confidence_reasons %}<span class="muted-inline">— {{ a.confidence_reasons }}</span>{% endif %}
+              </p>
+            {% endif %}
+            {% set sections = [("Recent avalanche activity", a.recent_activity), ("Snowpack", a.snowpack), ("Mountain weather", a.mountain_weather), ("Sliding danger", a.sliding_danger)] %}
+            {% for title, body in sections if body %}
+              <details class="advisory-section">
+                <summary>{{ title }}</summary>
+                <p class="prose">{{ body }}</p>
+              </details>
+            {% endfor %}
+          {% endif %}
+          <p class="advisory-link">
+            <a href="{{ row.url }}" target="_blank" rel="noopener">Full advisory at avalanche.net.nz</a>
+          </p>
+        </div>
+      </details>
+    {% endfor %}
+  </div>
+  <p class="muted advisory-credit">
+    Source: NZ Avalanche Advisory (avalanche.net.nz), fetched automatically. Always read the full
+    official advisory before touring.
+  </p>
+{% else %}
+  <p class="muted">No advisory data {% if as_of %}as of this snapshot{% else %}yet{% endif %}.</p>
+{% endif %}

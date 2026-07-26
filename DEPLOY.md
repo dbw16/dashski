@@ -51,15 +51,22 @@ Do not deploy without asking first. To deploy and confirm it builds, run
 
 ## Volume / persistence
 
-Already provisioned. To recreate from scratch on a new service:
+`dashski-volume` → `/app/data`, 500MB. Without it the SQLite DB sits on the
+container's ephemeral disk and every deploy or restart wipes the history the
+snapshot slider steps through — check `just volumes` first when the slider has
+only one position.
+
+To recreate from scratch on a new service:
 
 ```
-railway volume --service <service-id> add --mount-path /app/data --json
-railway redeploy --service <service-id> --yes   # volume only takes effect after a redeploy
+railway volume add --mount-path /app/data --json   # attaches to the linked service
+railway redeploy --service <service-id> --yes      # volume only takes effect after a redeploy
 ```
 
-`--service` **must be the service ID, not the name** — passing the name panics
-in CLI 5.26.0 (`Option::unwrap() on a None value`). Get the ID with:
+`volume add` in CLI 5.26.0 takes **no `--service` flag** — it uses whatever
+`railway status` reports as the linked service, so run `just link` first.
+Elsewhere `--service` **must be the service ID, not the name** — passing the
+name panics in 5.26.0 (`Option::unwrap() on a None value`). Get the ID with:
 
 ```
 railway list --json   # → services[].node.id

@@ -11,7 +11,7 @@
     <div class="page">
       <header class="page-header">
         <h1>Dashski</h1>
-        <p class="subtitle">South Island snow at a glance</p>
+        <p class="subtitle">South Island avalanche danger at a glance</p>
       </header>
       <div class="actions widget-toolbar">
         <button class="btn"
@@ -27,30 +27,13 @@
                hx-trigger="load, every 60s[dashskiIsLive()]">
         <p class="muted">Loading history…</p>
       </section>
-      <section class="widget-grid">
-        <section class="card widget"
-                 id="widget-forecast"
-                 hx-get="/api/widget/forecast"
-                 hx-trigger="load, every 60s, refresh-done from:body">
-          <h2>Forecast</h2>
-          <p class="muted">Loading…</p>
-        </section>
-        <section class="card widget"
-                 id="widget-observation"
-                 hx-get="/api/widget/observation"
-                 hx-include="#as-of-value"
-                 hx-trigger="load, every 60s[dashskiIsLive()], refresh-done[dashskiIsLive()] from:body, asof-changed from:body delay:150ms">
-          <h2>Observations</h2>
-          <p class="muted">Loading…</p>
-        </section>
-        <section class="card widget"
-                 id="widget-snow-report"
-                 hx-get="/api/widget/snow-report"
-                 hx-include="#as-of-value"
-                 hx-trigger="load, every 60s[dashskiIsLive()], refresh-done[dashskiIsLive()] from:body, asof-changed from:body delay:150ms">
-          <h2>Snow reports</h2>
-          <p class="muted">Loading…</p>
-        </section>
+      <section class="card widget widget-toolbar"
+               id="widget-advisory"
+               hx-get="/api/widget/advisory"
+               hx-include="#as-of-value"
+               hx-trigger="load, every 60s[dashskiIsLive()], refresh-done[dashskiIsLive()] from:body, asof-changed from:body delay:150ms">
+        <h2>Avalanche advisory</h2>
+        <p class="muted">Loading…</p>
       </section>
     </div>
     <script>
@@ -59,17 +42,54 @@
         return el ? JSON.parse(el.dataset.snapshots) : [];
       }
 
+      // Polling re-renders the advisory widget, which would collapse whatever
+      // the reader had open, so open regions are remembered across swaps.
+      const dashskiOpenRegions = new Set();
+
+      document.body.addEventListener("toggle", (e) => {
+        const region = e.target.dataset && e.target.dataset.region;
+        if (!region) return;
+        if (e.target.open) dashskiOpenRegions.add(region);
+        else dashskiOpenRegions.delete(region);
+      }, true); // capture: toggle does not bubble
+
+      document.body.addEventListener("htmx:afterSwap", () => {
+        document.querySelectorAll("details[data-region]").forEach((el) => {
+          el.open = dashskiOpenRegions.has(el.dataset.region);
+        });
+      });
+
       function dashskiIsLive() {
         const el = document.getElementById("as-of-value");
         return !el || el.value === "";
       }
 
-      function dashskiFormatUTC(iso) {
+      // Snapshots are naive UTC on the wire; the whole UI reads in NZ local time.
+      // Matches the server's `nz` filter minus the zone suffix — the slider head
+      // is the widest thing on a phone, and every time here is NZ time.
+      function dashskiFormatNZ(iso) {
         const d = new Date(iso.endsWith("Z") ? iso : iso + "Z");
-        return (
-          d.toLocaleString("en-NZ", { timeZone: "UTC", dateStyle: "medium", timeStyle: "short" }) +
-          " UTC"
-        );
+        return d
+          .toLocaleString("en-NZ", {
+            timeZone: "Pacific/Auckland",
+            weekday: "short",
+            day: "2-digit",
+            month: "short",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          })
+          .replace(",", ""); // "Sun, 26 Jul" -> "Sun 26 Jul", as the server writes it
+      }
+
+      function dashskiAgo(iso) {
+        const then = new Date(iso.endsWith("Z") ? iso : iso + "Z");
+        const mins = Math.round((Date.now() - then) / 60000);
+        if (mins < 1) return "just now";
+        if (mins < 60) return mins + " min ago";
+        const hours = Math.round(mins / 60);
+        if (hours < 48) return hours + (hours === 1 ? " hour ago" : " hours ago");
+        return Math.round(hours / 24) + " days ago";
       }
 
       function dashskiUpdate(index) {
@@ -82,7 +102,22 @@
         range.value = index;
         const live = index === snapshots.length - 1;
         hidden.value = live ? "" : snapshots[index];
-        label.textContent = live ? "Live" : "Snapshot: " + dashskiFormatUTC(snapshots[index]);
+
+        label.textContent = live ? "Live" : dashskiFormatNZ(snapshots[index]);
+        document.getElementById("asof-sub").textContent = live
+          ? "Newest of " + snapshots.length + (snapshots.length === 1 ? " snapshot" : " snapshots")
+          : dashskiAgo(snapshots[index]) + " · " + (index + 1) + " of " + snapshots.length;
+        document.getElementById("asof-dot").classList.toggle("status-dot-past", !live);
+        document.getElementById("asof-live").hidden = live;
+
+        // The thumb's own position drives the filled portion of the track. The
+        // var lives on the wrapper, not the range: htmx's settle phase restores
+        // the incoming markup's attributes on id-matched elements, so a style
+        // set on #asof-range during a swap is wiped ~20ms later.
+        const max = Number(range.max);
+        const fill = max > 0 ? (index / max) * 100 : 100; // lone snapshot: full track
+        range.closest(".asof").style.setProperty("--asof-fill", fill + "%");
+        range.setAttribute("aria-valuetext", label.textContent);
         document.body.dispatchEvent(new Event("asof-changed"));
       }
 

@@ -1,12 +1,17 @@
 # 24h snowfall: direct from source, else calculated from the 7-day trend, never persisted
 
-`SnowReport.new_snow_24h_cm` holds a direct source figure when a field
-publishes one (none do yet). When it's null, the Snow Report widget estimates
-it at render time as `today's new_snow_7d_cm − prior report's new_snow_7d_cm`
-— the newest day's snowfall as it rolls into the 7-day window. This is only
-an approximation (it also drops whatever fell off the window's oldest day),
-so the UI marks calculated figures with `*` and a legend, distinct from a
-direct figure.
+> **Superseded by ADR 0015** — snow reports were removed from Dashski entirely;
+> this records why the shape was what it was while they existed.
+
+A field that publishes 24h snowfall directly is stored as such — `new_snow_cm`
+with a `new_snow_window_hours` of 24 (ADR 0014) — and shown as-is. For a field
+publishing a 7-day total instead, the Snow Report widget estimates the 24h
+figure at render time as `today's new_snow_cm − prior report's new_snow_cm` —
+the newest day's snowfall as it rolls into the 7-day window. This is only an
+approximation (it also drops whatever fell off the window's oldest day), so the
+UI marks calculated figures with `*` and a legend, distinct from a direct
+figure, and the estimate is only attempted when both reports carry a 7-day
+window (ADR 0014).
 
 The estimate is only computed when the prior report is 18–30h old. Outside
 that window (a field that missed updates) the gap no longer represents

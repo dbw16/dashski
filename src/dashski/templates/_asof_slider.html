@@ -1,28 +1,39 @@
 {% if snapshots %}
-  <div class="asof-controls" data-snapshots="{{ snapshots_json }}">
-    <button type="button"
-            class="btn btn-icon"
-            onclick="dashskiStep(-1)"
-            aria-label="Previous snapshot">‹</button>
-    <input type="range"
-           id="asof-range"
-           class="asof-range"
-           min="0"
-           max="{{ snapshots | length - 1 }}"
-           value="{{ snapshots | length - 1 }}"
-           oninput="dashskiUpdate(this.value)"
-           aria-label="History position">
-    <button type="button"
-            class="btn btn-icon"
-            onclick="dashskiStep(1)"
-            aria-label="Next snapshot">›</button>
-    <button type="button"
-            class="btn"
-            hx-get="/api/snapshots"
-            hx-target="#asof-slider"
-            hx-swap="innerHTML">Live</button>
+  <div class="asof" data-snapshots="{{ snapshots_json }}">
+    <div class="asof-head">
+      <p class="asof-state">
+        <span class="status-dot" id="asof-dot" aria-hidden="true"></span>
+        <span id="asof-label">Live</span>
+      </p>
+      <button type="button"
+              class="btn asof-live"
+              id="asof-live"
+              hx-get="/api/snapshots"
+              hx-target="#asof-slider"
+              hx-swap="innerHTML"
+              hidden>Back to live</button>
+    </div>
+    <p class="asof-sub muted" id="asof-sub"></p>
+    <div class="asof-controls">
+      <button type="button"
+              class="btn btn-step"
+              onclick="dashskiStep(-1)"
+              aria-label="Earlier snapshot">‹</button>
+      <input type="range"
+             id="asof-range"
+             class="asof-range"
+             min="0"
+             max="{{ snapshots | length - 1 }}"
+             value="{{ snapshots | length - 1 }}"
+             oninput="dashskiUpdate(this.value)"
+             aria-label="History position"
+             aria-valuetext="Live">
+      <button type="button"
+              class="btn btn-step"
+              onclick="dashskiStep(1)"
+              aria-label="Later snapshot">›</button>
+    </div>
   </div>
-  <p class="asof-label muted" id="asof-label"></p>
   <script>dashskiUpdate({{ snapshots | length - 1 }});</script>
 {% else %}
   <p class="muted">No history yet.</p>

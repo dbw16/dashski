@@ -1,7 +1,11 @@
 Be extremely concise. Sacrifice grammar for the sake of concision.
 
 When adding new code run ci tooling:  `just ci-ai`
-When adding new features start up the websever and take screen shots using `npx playwrite` to make sure it looks correct ect.
+When adding new features start up the websever and check it out using chrome devtools mcp. 
+Make sure it renders correctly and that all the panes are fully fillout out correctly ect. 
+When adding ui elements make sure they work on a narrow mobile browser too. 
+
+When scraping a website use chrome dev tools mcp. 
 
 Do not deploy app without asking.
 To deploy the app and make sure it builds run `just deploy-watch`

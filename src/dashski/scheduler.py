@@ -10,10 +10,26 @@ from datetime import UTC, datetime
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from sqlalchemy import Engine
-from sqlmodel import Session
+from sqlmodel import Session, col, select
 
-from dashski.models import FetchRun, RawFetch, SourceStatus, utcnow
+from dashski.models import AvalancheAdvisory, FetchRun, RawFetch, Reading, SourceStatus, utcnow
 from dashski.sources.base import Source
+
+
+def _already_stored(session: Session, reading: Reading) -> bool:
+    """True when this exact advisory is already in the DB — a refetch of what we have.
+
+    Compared against the versions of the same publication (same region, same
+    issued_at), of which dedupe leaves at most a handful (ADR 0016).
+    """
+    existing = session.exec(
+        select(AvalancheAdvisory).where(
+            col(AvalancheAdvisory.source_id) == reading.source_id,
+            col(AvalancheAdvisory.region) == reading.region,
+            col(AvalancheAdvisory.issued_at) == reading.issued_at,
+        )
+    ).all()
+    return any(row.content_key() == reading.content_key() for row in existing)
 
 
 def run_source(source: Source, engine: Engine) -> bool:
@@ -37,7 +53,8 @@ def run_source(source: Source, engine: Engine) -> bool:
             session.add(raw_row)
 
             for reading in source.parse(raw):
-                session.add(reading)
+                if not _already_stored(session, reading):
+                    session.add(reading)
             status.last_success_at = utcnow()
             status.last_error = None
         except Exception as exc:

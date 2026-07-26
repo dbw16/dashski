@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Annotated
+from zoneinfo import ZoneInfo
 
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import HTMLResponse
@@ -13,11 +14,10 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlmodel import Session, col, select
 
+from dashski import advisory as advisory_view
 from dashski import db
 from dashski.models import (
-    ForecastReading,
-    ObservationReading,
-    SnowReport,
+    AvalancheAdvisory,
     SourceKind,
     SourceStatus,
     utcnow,
@@ -45,11 +45,22 @@ app = FastAPI(title="Dashski", lifespan=lifespan)
 app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 templates = Jinja2Templates(directory=BASE_DIR / "templates")
 
+NZ = ZoneInfo("Pacific/Auckland")
+"""Everything is stored as naive UTC and displayed in NZ local time — this is a
+South Island dashboard, and mixing zones on one screen invites misreading."""
+
+
+def _nz(value: datetime, fmt: str = "%a %d %b, %H:%M %Z") -> str:
+    return value.replace(tzinfo=UTC).astimezone(NZ).strftime(fmt)
+
+
+templates.env.filters["nz"] = _nz
+
 SessionDep = Annotated[Session, Depends(db.get_session)]
 
 
 def _now() -> str:
-    return datetime.now(UTC).strftime("%H:%M:%S UTC")
+    return _nz(utcnow(), "%H:%M:%S %Z")
 
 
 @dataclass(frozen=True)
@@ -114,122 +125,41 @@ def dashboard(request: Request) -> HTMLResponse:
     return templates.TemplateResponse(request, "index.html", {})
 
 
-@app.get("/api/widget/forecast", response_class=HTMLResponse)
-def widget_forecast(request: Request, session: SessionDep) -> HTMLResponse:
-    recent = session.exec(
-        select(ForecastReading)
-        .order_by(col(ForecastReading.fetched_at).desc())
-        .limit(_HISTORY_SCAN_LIMIT)
-    ).all()
-    readings = _latest_by_identity(recent, lambda r: (r.source_id, r.location))[:20]
-    return templates.TemplateResponse(
-        request,
-        "_widget_forecast.html",
-        {"readings": readings, "freshness": _freshness(_statuses(session, SourceKind.FORECAST))},
-    )
-
-
 def _parse_as_of(as_of: str | None) -> datetime | None:
     """Empty string (an unset hx-include field) and missing both mean Live."""
     return datetime.fromisoformat(as_of) if as_of else None
 
 
-@app.get("/api/widget/observation", response_class=HTMLResponse)
-def widget_observation(
+@app.get("/api/widget/advisory", response_class=HTMLResponse)
+def widget_advisory(
     request: Request, session: SessionDep, as_of: str | None = None
 ) -> HTMLResponse:
     as_of_dt = _parse_as_of(as_of)
-    query = select(ObservationReading).order_by(col(ObservationReading.fetched_at).desc())
-    if as_of_dt is not None:
-        query = query.where(col(ObservationReading.fetched_at) <= as_of_dt)
-    recent = session.exec(query.limit(_HISTORY_SCAN_LIMIT)).all()
-    readings = _latest_by_identity(recent, lambda r: (r.source_id, r.station))[:20]
-    context: dict[str, object] = {"readings": readings, "as_of": as_of_dt}
-    if as_of_dt is None:
-        context["freshness"] = _freshness(_statuses(session, SourceKind.OBSERVATION))
-    return templates.TemplateResponse(request, "_widget_observation.html", context)
-
-
-_CALC_24H_MIN_GAP = timedelta(hours=18)
-_CALC_24H_MAX_GAP = timedelta(hours=30)
-
-
-@dataclass(frozen=True)
-class SnowReportRow:
-    """A snow report plus its 24h-snowfall figure and where that figure came from."""
-
-    report: SnowReport
-    new_snow_24h_cm: float | None
-    new_snow_24h_calculated: bool
-
-
-def _prior_snow_report(
-    session: Session, report: SnowReport, as_of: datetime | None
-) -> SnowReport | None:
-    """The same field's most recent report strictly before this one — the "yesterday" baseline.
-
-    Bound by the same `as_of` cutoff as the report itself (ADR 0009) — otherwise a frozen
-    snapshot could compute its 24h figure from a report that, as of that snapshot, hadn't
-    been fetched yet.
-    """
-    query = (
-        select(SnowReport)
-        .where(col(SnowReport.source_id) == report.source_id)
-        .where(col(SnowReport.ski_field) == report.ski_field)
-        .where(col(SnowReport.reported_at) < report.reported_at)
+    query = select(AvalancheAdvisory).order_by(
+        col(AvalancheAdvisory.fetched_at).desc(), col(AvalancheAdvisory.issued_at).desc()
     )
-    if as_of is not None:
-        query = query.where(col(SnowReport.fetched_at) <= as_of)
-    return session.exec(query.order_by(col(SnowReport.reported_at).desc()).limit(1)).first()
-
-
-def _snow_24h(report: SnowReport, prior: SnowReport | None) -> tuple[float | None, bool]:
-    """Direct source figure if present; otherwise a same-field trend estimate (ADR 0008).
-
-    Estimate = today's 7-day total minus the prior report's 7-day total, which
-    approximates the newest day's snowfall as it rolls into the 7-day window.
-    Only trusted when the prior report is roughly a day old — a stale prior
-    report (missed updates) would silently mislabel a multi-day delta as 24h.
-    """
-    if report.new_snow_24h_cm is not None:
-        return report.new_snow_24h_cm, False
-    if prior is None or report.new_snow_7d_cm is None or prior.new_snow_7d_cm is None:
-        return None, False
-    gap = report.reported_at - prior.reported_at
-    if not (_CALC_24H_MIN_GAP <= gap <= _CALC_24H_MAX_GAP):
-        return None, False
-    return max(0.0, report.new_snow_7d_cm - prior.new_snow_7d_cm), True
-
-
-@app.get("/api/widget/snow-report", response_class=HTMLResponse)
-def widget_snow_report(
-    request: Request, session: SessionDep, as_of: str | None = None
-) -> HTMLResponse:
-    as_of_dt = _parse_as_of(as_of)
-    query = select(SnowReport).order_by(col(SnowReport.fetched_at).desc())
     if as_of_dt is not None:
-        query = query.where(col(SnowReport.fetched_at) <= as_of_dt)
+        query = query.where(col(AvalancheAdvisory.fetched_at) <= as_of_dt)
     recent = session.exec(query.limit(_HISTORY_SCAN_LIMIT)).all()
-    latest = _latest_by_identity(recent, lambda r: (r.source_id, r.ski_field))[:20]
-    rows = []
-    for report in latest:
-        snow_24h, calculated = _snow_24h(report, _prior_snow_report(session, report, as_of_dt))
-        rows.append(
-            SnowReportRow(
-                report=report, new_snow_24h_cm=snow_24h, new_snow_24h_calculated=calculated
-            )
-        )
-    context: dict[str, object] = {"rows": rows, "as_of": as_of_dt}
+
+    # One fetch stores several advisories per region under a single fetched_at, so
+    # the secondary issued_at ordering above is what makes this pick the newest.
+    latest = _latest_by_identity(recent, lambda a: (a.source_id, a.region))
+    rows = advisory_view.build_rows(latest, as_of_dt or utcnow())
+
+    context: dict[str, object] = {
+        "rows": rows,
+        "as_of": as_of_dt,
+        "aspect_wedges": advisory_view.ASPECT_WEDGES,
+    }
     if as_of_dt is None:
-        context["freshness"] = _freshness(_statuses(session, SourceKind.SNOW_REPORT))
-    return templates.TemplateResponse(request, "_widget_snow_report.html", context)
+        context["freshness"] = _freshness(_statuses(session, SourceKind.ADVISORY))
+    return templates.TemplateResponse(request, "_widget_advisory.html", context)
 
 
 def _snapshot_times(session: Session) -> list[datetime]:
     """Every distinct moment an As-Of-eligible widget's known state changed (ADR 0010)."""
-    snow_times = session.exec(select(SnowReport.fetched_at)).all()
-    obs_times = session.exec(select(ObservationReading.fetched_at)).all()
-    return sorted({*snow_times, *obs_times})
+    return sorted(set(session.exec(select(AvalancheAdvisory.fetched_at)).all()))
 
 
 @app.get("/api/snapshots", response_class=HTMLResponse)

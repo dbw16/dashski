@@ -1,10 +1,6 @@
 from bs4 import BeautifulSoup, Tag
 from fastapi.testclient import TestClient
 
-from dashski.main import app
-
-client = TestClient(app)
-
 
 def _attr(tag: Tag, name: str) -> str | None:
     value = tag.get(name)
@@ -18,7 +14,7 @@ def _hx_elements(soup: BeautifulSoup) -> list[Tag]:
     return [tag for tag in soup.find_all(True) if tag.has_attr("hx-get") or tag.has_attr("hx-post")]
 
 
-def test_hx_targets_exist_on_initial_page() -> None:
+def test_hx_targets_exist_on_initial_page(client: TestClient) -> None:
     soup = BeautifulSoup(client.get("/").text, "html.parser")
     ids = {_attr(tag, "id") for tag in soup.find_all(id=True)}
 
@@ -30,7 +26,7 @@ def test_hx_targets_exist_on_initial_page() -> None:
         assert target_id in ids, f"hx-target={target!r} on {tag} has no matching id on the page"
 
 
-def test_outer_html_swaps_preserve_their_target_id() -> None:
+def test_outer_html_swaps_preserve_their_target_id(client: TestClient) -> None:
     soup = BeautifulSoup(client.get("/").text, "html.parser")
 
     for tag in _hx_elements(soup):

@@ -75,13 +75,6 @@ body {
   margin-bottom: 16px;
 }
 
-.widget-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
 .freshness {
   display: flex;
   align-items: center;
@@ -93,30 +86,6 @@ body {
 
 .status-dot-warn {
   background: var(--status-warn);
-}
-
-.table-scroll {
-  overflow-x: auto;
-}
-
-.readings {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
-}
-
-.readings th {
-  text-align: left;
-  font-weight: 500;
-  font-size: 12px;
-  color: var(--text-muted);
-  padding: 6px 12px 6px 0;
-  border-bottom: 1px solid var(--border);
-}
-
-.readings td {
-  padding: 6px 12px 6px 0;
-  border-bottom: 1px solid var(--border);
 }
 
 .card h2 {
@@ -149,41 +118,474 @@ body {
   border-color: var(--series-1);
 }
 
-.btn-icon {
+/* History slider (ADR 0010)
+   Built thumb-first for touch: where you are reads big at the top, the drag
+   row below is all 48px targets, and "Back to live" appears only once there
+   is something to come back from. */
+.asof {
+  --asof-fill: 100%; /* JS moves this with the thumb; the default is Live */
+}
+
+.asof-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.asof-state {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.status-dot-past {
+  background: var(--text-muted);
+}
+
+.asof-live {
+  flex: none;
   padding: 8px 14px;
-  font-size: 18px;
-  line-height: 1;
-  min-width: 44px;
+  font-size: 13px;
+}
+
+.asof-sub {
+  margin: 2px 0 0 16px;
+  font-size: 13px;
 }
 
 .asof-controls {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  margin-top: 8px;
 }
 
+.btn-step {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  font-size: 22px;
+  line-height: 1;
+}
+
+/* Vendor track/thumb rules cannot be grouped in one selector list — a browser
+   drops the whole rule on the pseudo-element it does not know. */
 .asof-range {
   flex: 1;
   min-width: 0;
-  height: 32px;
-  accent-color: var(--series-1);
+  height: 48px;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  appearance: none;
+  -webkit-appearance: none;
+  touch-action: pan-y; /* vertical swipes still scroll the page */
+  cursor: pointer;
 }
 
-.asof-label {
-  margin: 8px 0 0;
+.asof-range::-webkit-slider-runnable-track {
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    var(--series-1) var(--asof-fill),
+    var(--border) var(--asof-fill)
+  );
 }
 
+.asof-range::-moz-range-track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--border);
+}
+
+.asof-range::-moz-range-progress {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--series-1);
+}
+
+.asof-range::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 28px;
+  height: 28px;
+  margin-top: -10px; /* centres the thumb on the 8px track */
+  border: 3px solid var(--surface-1);
+  border-radius: 50%;
+  background: var(--series-1);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+
+.asof-range::-moz-range-thumb {
+  width: 28px;
+  height: 28px;
+  border: 3px solid var(--surface-1);
+  border-radius: 50%;
+  background: var(--series-1);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+
+.asof-range:focus-visible {
+  outline: 2px solid var(--series-1);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
+/* A frozen view is not fresh data, so its dot drops the healthy green — here
+   and on the slider head. */
 .asof-banner {
   color: var(--text-secondary);
 }
 
-@media (max-width: 480px) {
-  .asof-controls {
-    flex-wrap: wrap;
+.asof-banner .status-dot {
+  background: var(--text-muted);
+}
+
+/* Avalanche advisory
+   Danger swatches are the international scale (1 Low .. 5 Extreme) and are
+   identical in both themes by design — the colours carry the meaning, so each
+   pairs with an explicit foreground rather than inheriting theme text. */
+/* Collapsed, a region is one line: name, the three band ratings, when it was
+   issued. Opening it reveals the problems and the forecaster's commentary. */
+.advisory-regions {
+  display: grid;
+  gap: 8px;
+}
+
+.advisory {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.advisory-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  cursor: pointer;
+  list-style: none;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums; /* equal-width digits keep the pills equal */
+}
+
+.advisory-summary::-webkit-details-marker {
+  display: none;
+}
+
+.advisory-summary::before {
+  content: "▸";
+  color: var(--text-muted);
+  transition: transform 0.15s ease;
+}
+
+.advisory[open] > .advisory-summary::before {
+  transform: rotate(90deg);
+}
+
+/* A fixed column for the name, so every row's ratings start at the same x and
+   read down as three straight columns. A name too long for it gets an ellipsis. */
+.advisory-region {
+  font-weight: 600;
+  flex: 0 0 8em;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.advisory-pills {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.band-pill {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: center;
+  min-width: 4.2em; /* all three the same width, whatever the rating renders as */
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+}
+
+.band-pill-label {
+  opacity: 0.75;
+}
+
+.band-pill b {
+  font-size: 13px;
+}
+
+/* Last in the row and the only part allowed to shrink: on a screen too narrow
+   for everything, the date truncates rather than pushing out of the card. */
+.advisory-meta {
+  margin-left: auto;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.meta-short {
+  display: none;
+}
+
+.advisory-detail {
+  padding: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.advisory-issued,
+.advisory-confidence,
+.advisory-link {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.advisory-flag {
+  margin: 4px 0 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--status-warn);
+}
+
+/* Expired content dims as a whole — dimming only the ratings reads as a
+   rendering fault rather than a warning. The expiry flag itself stays bright. */
+.advisory-expired .band-pill,
+.advisory-expired .advisory-detail {
+  opacity: 0.55;
+}
+
+.advisory-detail > :first-child {
+  margin-top: 0;
+}
+
+.bands {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+  max-width: 420px;
+}
+
+.band {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.band-label {
+  flex: 0 0 88px;
+  color: var(--text-secondary);
+}
+
+.band-rating {
+  flex: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.band-rating b {
+  font-size: 15px;
+}
+
+.band-1 {
+  background: #52ba4a;
+  color: #06230a;
+}
+
+.band-2 {
+  background: #fff300;
+  color: #2b2600;
+}
+
+.band-3 {
+  background: #f79218;
+  color: #2e1700;
+}
+
+.band-4 {
+  background: #ee1c25;
+  color: #ffffff;
+}
+
+.band-5 {
+  background: #17171a;
+  color: #ee1c25;
+  border: 1px solid #ee1c25;
+}
+
+.band-none {
+  background: transparent;
+  border: 1px dashed var(--border);
+  color: var(--text-muted);
+}
+
+.problems {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.problem {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.problem-body {
+  min-width: 0;
+}
+
+.problem-head {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.problem-name {
+  font-weight: 600;
+}
+
+.chip {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.rose {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+
+.rose-wedge {
+  fill: transparent;
+  stroke: var(--border);
+  stroke-width: 0.75;
+}
+
+.rose-on {
+  fill: var(--series-1);
+  stroke: var(--series-1);
+}
+
+.prose {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  white-space: pre-line;
+}
+
+.prose-lead {
+  margin-top: 14px;
+  color: var(--text-primary);
+}
+
+.advisory-confidence {
+  margin-top: 12px;
+}
+
+.muted-inline {
+  color: var(--text-muted);
+}
+
+.advisory-section {
+  margin-top: 8px;
+  font-size: 13px;
+}
+
+.advisory-section summary {
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+
+.advisory-link {
+  margin-top: 12px;
+}
+
+.advisory-link a {
+  color: var(--series-1);
+}
+
+.advisory-credit {
+  margin: 20px 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Phone: one narrow column. Trim the page chrome, and let each advisory
+   summary drop its issued line below the ratings rather than squeeze them. */
+@media (max-width: 600px) {
+  .page {
+    padding: 28px 14px 48px;
   }
 
-  .asof-range {
-    order: 1;
-    flex-basis: 100%;
+  .card {
+    padding: 16px 14px;
+  }
+
+  /* A region stays one line here too: the summary tightens up and keeps only
+     the issued date — the full timestamp is inside, once opened. */
+  .advisory-summary {
+    gap: 6px;
+    padding: 10px 8px;
+    font-size: 13px;
+  }
+
+  .advisory-pills {
+    gap: 3px;
+  }
+
+  .band-pill {
+    gap: 3px;
+    padding: 2px 6px;
+    min-width: 4em;
+  }
+
+  .meta-long {
+    display: none;
+  }
+
+  .meta-short {
+    display: inline;
+  }
+
+  .problem {
+    gap: 8px;
+  }
+
+  .rose {
+    width: 32px;
+    height: 32px;
   }
 }

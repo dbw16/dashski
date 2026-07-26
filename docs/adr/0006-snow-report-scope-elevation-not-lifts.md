@@ -1,5 +1,8 @@
 # SnowReport tracks elevation-dependent snow depth, not lift status
 
+> **Superseded by ADR 0015** — snow reports were removed from Dashski entirely;
+> this records why the shape was what it was while they existed.
+
 Dashski is a touring dashboard, not a resort trail-map app, so `SnowReport`
 does not track lift status (`lifts_open`/`lifts_total` removed) even though
 ski fields report it — it's out of scope app-wide, not just for one source.

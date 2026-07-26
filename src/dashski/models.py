@@ -3,7 +3,7 @@
 from datetime import UTC, datetime
 from enum import StrEnum
 
-from sqlmodel import Field, SQLModel
+from sqlmodel import Field, Relationship, SQLModel
 
 
 def utcnow() -> datetime:
@@ -12,9 +12,7 @@ def utcnow() -> datetime:
 
 
 class SourceKind(StrEnum):
-    FORECAST = "forecast"
-    OBSERVATION = "observation"
-    SNOW_REPORT = "snow_report"
+    ADVISORY = "advisory"
 
 
 class SourceStatus(SQLModel, table=True):
@@ -47,51 +45,83 @@ class RawFetch(SQLModel, table=True):
     payload: str
 
 
-class ForecastReading(SQLModel, table=True):
-    """Predicted weather for a location, as fetched from a forecast source."""
+_BOOKKEEPING_FIELDS = frozenset({"id", "fetched_at", "advisory_id"})
+"""Columns recording when and where we stored a row, not what the source said."""
+
+
+def _field_key(row: SQLModel) -> tuple[object, ...]:
+    return tuple(
+        (name, getattr(row, name))
+        for name in sorted(type(row).model_fields)
+        if name not in _BOOKKEEPING_FIELDS
+    )
+
+
+class AvalancheAdvisory(SQLModel, table=True):
+    """One region's avalanche advisory for one 24h period, as published by the NZAA.
+
+    Danger ratings are 1-5 (Low..Extreme); negatives are non-ratings, of which
+    only -2 "Insufficient snow" has been observed. Elevation bands are fixed at
+    three and identified by the payload's array order, never its altitude
+    numbers (ADR 0012). Prose fields hold plain text — the source publishes HTML
+    and the parser strips it (ADR 0011).
+    """
 
     id: int | None = Field(default=None, primary_key=True)
     source_id: str = Field(foreign_key="sourcestatus.source_id", index=True)
     fetched_at: datetime
-    location: str
-    forecast_for: datetime
-    summary: str | None = None
-    temp_high_c: float | None = None
-    temp_low_c: float | None = None
-    wind_kmh: float | None = None
-    precip_mm: float | None = None
-    snow_level_m: float | None = None
+    region: str
+    issued_at: datetime
+    valid_period: str | None = None
+    forecaster: str | None = None
+    danger_high_alpine: int | None = None
+    danger_alpine: int | None = None
+    danger_sub_alpine: int | None = None
+    confidence_level: str | None = None
+    confidence_reasons: str | None = None
+    important_info: str | None = None
+    recent_activity: str | None = None
+    snowpack: str | None = None
+    mountain_weather: str | None = None
+    sliding_danger: str | None = None
+
+    problems: list[AvalancheProblem] = Relationship(
+        back_populates="advisory",
+        sa_relationship_kwargs={"order_by": "AvalancheProblem.priority_level"},
+    )
+
+    def content_key(self) -> object:
+        """Everything the advisory says, minus when we fetched it (ADR 0016).
+
+        Two advisories with equal keys are the same publication refetched, so
+        storing the second one would add a Snapshot showing nothing new.
+        """
+        return (_field_key(self), tuple(sorted(map(_field_key, self.problems), key=repr)))
 
 
-class ObservationReading(SQLModel, table=True):
-    """Measured weather from a station — what actually happened."""
+class AvalancheProblem(SQLModel, table=True):
+    """One avalanche problem within an advisory — the "what and where" of the danger.
+
+    Aspect columns hold the compass aspects the problem applies to at that
+    elevation band, comma-joined (e.g. "N,NE,E"). The source encodes them as
+    object keys whose values are always 0, so presence is the signal (ADR 0012).
+    """
 
     id: int | None = Field(default=None, primary_key=True)
-    source_id: str = Field(foreign_key="sourcestatus.source_id", index=True)
-    fetched_at: datetime
-    station: str
-    observed_at: datetime
-    temp_c: float | None = None
-    wind_kmh: float | None = None
-    wind_dir: str | None = None
-    precip_mm: float | None = None
-    snow_depth_cm: float | None = None
+    advisory_id: int | None = Field(default=None, foreign_key="avalancheadvisory.id", index=True)
+    priority: str | None = None
+    priority_level: int | None = None
+    character: str
+    likelihood: int | None = None
+    size: float | None = None  # destructive size, reported in half steps (D1, D1.5, …)
+    trend: str | None = None
+    aspects_high_alpine: str | None = None
+    aspects_alpine: str | None = None
+    aspects_sub_alpine: str | None = None
+    description: str | None = None
+
+    advisory: AvalancheAdvisory | None = Relationship(back_populates="problems")
 
 
-class SnowReport(SQLModel, table=True):
-    """A ski field's self-reported conditions."""
-
-    id: int | None = Field(default=None, primary_key=True)
-    source_id: str = Field(foreign_key="sourcestatus.source_id", index=True)
-    fetched_at: datetime
-    ski_field: str
-    reported_at: datetime
-    base_depth_lower_cm: float | None = None
-    base_depth_upper_cm: float | None = None
-    new_snow_24h_cm: float | None = None
-    new_snow_7d_cm: float | None = None
-    season_snowfall_cm: float | None = None
-    summary: str | None = None
-
-
-type Reading = ForecastReading | ObservationReading | SnowReport
+type Reading = AvalancheAdvisory
+"""What a source's parse() yields. A union again if a second kind is ever added (ADR 0015)."""
