@@ -13,13 +13,6 @@
         <h1>Dashski</h1>
         <p class="subtitle">South Island avalanche danger at a glance</p>
       </header>
-      <div class="actions widget-toolbar">
-        <button class="btn"
-                hx-post="/api/refresh"
-                hx-target="#refresh-status"
-                hx-swap="outerHTML">Force refresh</button>
-        <span id="refresh-status" class="muted"></span>
-      </div>
       <input type="hidden" id="as-of-value" name="as_of" value="" />
       <section class="card widget-toolbar"
                id="asof-slider"
@@ -31,7 +24,7 @@
                id="widget-advisory"
                hx-get="/api/widget/advisory"
                hx-include="#as-of-value"
-               hx-trigger="load, every 60s[dashskiIsLive()], refresh-done[dashskiIsLive()] from:body, asof-changed from:body delay:150ms">
+               hx-trigger="load, every 60s[dashskiIsLive()], asof-changed from:body delay:150ms">
         <h2>Avalanche advisory</h2>
         <p class="muted">Loading…</p>
       </section>

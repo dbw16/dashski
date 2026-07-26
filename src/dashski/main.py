@@ -23,7 +23,7 @@ from dashski.models import (
     SourceStatus,
     utcnow,
 )
-from dashski.scheduler import create_scheduler, run_source
+from dashski.scheduler import create_scheduler
 from dashski.sources.registry import SOURCES
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -58,10 +58,6 @@ def _nz(value: datetime, fmt: str = "%a %d %b, %H:%M %Z") -> str:
 templates.env.filters["nz"] = _nz
 
 SessionDep = Annotated[Session, Depends(db.get_session)]
-
-
-def _now() -> str:
-    return _nz(utcnow(), "%H:%M:%S %Z")
 
 
 @dataclass(frozen=True)
@@ -203,16 +199,3 @@ def snapshots(request: Request, session: SessionDep) -> HTMLResponse:
         "_asof_slider.html",
         {"snapshots": times, "snapshots_json": json.dumps([t.isoformat() for t in times])},
     )
-
-
-@app.post("/api/refresh", response_class=HTMLResponse)
-def refresh(request: Request) -> HTMLResponse:
-    engine = db.get_engine()
-    ok = sum(run_source(source, engine) for source in SOURCES)
-    response = templates.TemplateResponse(
-        request,
-        "_refresh_status.html",
-        {"ok": ok, "total": len(SOURCES), "server_time": _now()},
-    )
-    response.headers["HX-Trigger"] = "refresh-done"
-    return response
