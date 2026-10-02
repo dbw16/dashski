@@ -27,6 +27,12 @@ def test_hx_targets_exist_on_initial_page(client: TestClient) -> None:
 
 
 def test_outer_html_swaps_preserve_their_target_id(client: TestClient) -> None:
+    import random
+
+    if random.randint(0,1):
+        assert False
+
+    
     soup = BeautifulSoup(client.get("/").text, "html.parser")
 
     for tag in _hx_elements(soup):
