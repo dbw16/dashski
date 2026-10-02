@@ -4,9 +4,11 @@ The live source only ever sees the two most recent advisories per region, so the
 history slider starts wherever the DB does. This walks backwards from there,
 using the one endpoint that answers for a past date (`fetch_history`).
 
-Each run extends the frontier by `--days` rather than fetching all of history:
-it resumes from what is already stored, so a run that dies partway through costs
-only the days it hadn't reached. Run it repeatedly to reach further back.
+`--days` names the target — N days before today — not an increment: each run
+walks each region's frontier back to that date, resuming from what is already
+stored, so a run that dies partway through costs only the days it hadn't
+reached and rerunning with the same `--days` finishes the job rather than
+digging N days deeper. A region already reaching the target fetches nothing.
 
     python -m dashski.backfill --days 30 [--dry-run]
 
@@ -61,24 +63,24 @@ def frontier(session: Session, region: Region) -> date:
     return oldest.replace(tzinfo=UTC).astimezone(NZ).date()
 
 
-def days_to_fetch(start: date, days: int) -> Iterator[date]:
-    """The `days` days before `start`, newest first, stopping at HISTORY_BEGINS.
+def days_to_fetch(start: date, until: date) -> Iterator[date]:
+    """The days before `start`, newest first, back to `until` (inclusive).
 
     `start` itself is excluded — it is already stored, which is what made it the
-    frontier. Newest first so an interrupted run leaves the frontier contiguous
-    instead of punching a hole the next run would skip over.
+    frontier — and days before HISTORY_BEGINS don't exist to fetch. Newest first
+    so an interrupted run leaves the frontier contiguous instead of punching a
+    hole the next run would skip over.
     """
-    for offset in range(1, days + 1):
-        day = start - timedelta(days=offset)
-        if day < HISTORY_BEGINS:
-            return
+    day = start - timedelta(days=1)
+    while day >= until and day >= HISTORY_BEGINS:
         yield day
+        day -= timedelta(days=1)
 
 
 def backfill_region(
-    session: Session, region: Region, start: date, days: int, *, delay: float, dry_run: bool
+    session: Session, region: Region, start: date, until: date, *, delay: float, dry_run: bool
 ) -> tuple[int, int]:
-    """Walk one region back `days` from `start`. Returns (days fetched, advisories stored).
+    """Walk one region back from `start` to `until`. Returns (days fetched, advisories stored).
 
     Commits per advisory so a crash keeps everything up to that point. Most days
     store nothing: the endpoint answers with whatever advisory *stood* on that
@@ -87,7 +89,7 @@ def backfill_region(
     """
     fetched = stored = 0
     seen: set[object] = set()
-    for day in days_to_fetch(start, days):
+    for day in days_to_fetch(start, until):
         advisory = fetch_history(region, day)
         fetched += 1
         time.sleep(delay)
@@ -116,13 +118,14 @@ def ensure_source_row(session: Session) -> None:
 
 
 def run(engine: Engine, days: int, *, delay: float, dry_run: bool) -> None:
+    until = datetime.now(NZ).date() - timedelta(days=days)
     with Session(engine) as session:
         ensure_source_row(session)
         total_fetched = total_stored = 0
         for region in REGIONS:
             start = frontier(session, region)
             fetched, stored = backfill_region(
-                session, region, start, days, delay=delay, dry_run=dry_run
+                session, region, start, until, delay=delay, dry_run=dry_run
             )
             total_fetched += fetched
             total_stored += stored
@@ -138,7 +141,7 @@ def main() -> None:
         "--days",
         type=int,
         default=DEFAULT_DAYS,
-        help=f"days to extend each region back by (default {DEFAULT_DAYS})",
+        help=f"backfill each region to this many days before today (default {DEFAULT_DAYS})",
     )
     parser.add_argument(
         "--delay", type=float, default=DEFAULT_DELAY, help="seconds between requests"

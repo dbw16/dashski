@@ -137,7 +137,7 @@ def _advisory(
     forecast: dict[str, Any], region: Region, source_id: str, fetched_at: datetime
 ) -> AvalancheAdvisory:
     bands = _band_ratings(forecast["altitudeDanger"], region)
-    sections = _sections(forecast.get("additionalInformation") or [])
+    sections = _sections(_as_list(forecast.get("additionalInformation")))
 
     advisory = AvalancheAdvisory(
         source_id=source_id,
@@ -157,8 +157,21 @@ def _advisory(
         mountain_weather=sections["mountain_weather"],
         sliding_danger=sections["sliding_danger"],
     )
-    advisory.problems = [_problem(p) for p in forecast.get("avalancheDangers") or []]
+    advisory.problems = [_problem(p) for p in _as_list(forecast.get("avalancheDangers"))]
     return advisory
+
+
+def _as_list(value: Any) -> list[Any]:
+    """A payload array, tolerating PHP's sparse-array-as-object encoding.
+
+    Deleting e.g. a problem from an advisory leaves the CMS's array without an
+    index 0, which PHP json_encodes as {"1": ..., "2": ...} instead of a list.
+    Keys are the original indices, so int order restores array order. Seen only
+    in forecastsearch history payloads, never live ones.
+    """
+    if isinstance(value, dict):
+        return [value[key] for key in sorted(value, key=int)]
+    return list(value or [])
 
 
 def _issued_at(forecast: dict[str, Any]) -> datetime:

@@ -172,6 +172,18 @@ def test_historical_advisory_has_no_confidence() -> None:
     assert advisory.confidence_reasons is None
 
 
+def test_parses_problems_encoded_as_sparse_php_object() -> None:
+    """A deleted problem leaves a sparse array, which PHP encodes as an object."""
+    payload = json.loads(_history_payload())
+    dangers = payload["forecast"]["avalancheDangers"]
+    payload["forecast"]["avalancheDangers"] = {"10": dangers[1], "2": dangers[0]}
+
+    advisory = parse_history(json.dumps(payload), REGIONS[0])
+
+    assert advisory is not None
+    assert [p.character for p in advisory.problems] == ["Wind Slab", "Loose Wet"]
+
+
 def test_parses_missing_history_as_none() -> None:
     """Dates before records begin answer with a null forecast, not an error."""
     assert parse_history('{"forecast": null}', REGIONS[0]) is None
