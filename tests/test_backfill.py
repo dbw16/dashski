@@ -86,13 +86,22 @@ def test_frontier_is_per_region(engine: Engine) -> None:
 
 
 def test_days_to_fetch_walks_backwards_excluding_the_frontier() -> None:
-    days = list(backfill.days_to_fetch(date(2025, 8, 10), 3))
+    days = list(backfill.days_to_fetch(date(2025, 8, 10), date(2025, 8, 7)))
 
     assert days == [date(2025, 8, 9), date(2025, 8, 8), date(2025, 8, 7)]
 
 
+def test_days_to_fetch_is_empty_when_the_frontier_already_reaches_the_target() -> None:
+    assert list(backfill.days_to_fetch(date(2025, 8, 7), date(2025, 8, 7))) == []
+    assert list(backfill.days_to_fetch(date(2025, 8, 5), date(2025, 8, 7))) == []
+
+
 def test_days_to_fetch_stops_at_the_start_of_records() -> None:
-    days = list(backfill.days_to_fetch(HISTORY_BEGINS + timedelta(days=2), 30))
+    days = list(
+        backfill.days_to_fetch(
+            HISTORY_BEGINS + timedelta(days=2), HISTORY_BEGINS - timedelta(days=30)
+        )
+    )
 
     assert days == [HISTORY_BEGINS + timedelta(days=1), HISTORY_BEGINS]
 
@@ -106,7 +115,7 @@ def test_stores_one_row_per_publication_not_per_day(
 
     with Session(engine) as session:
         fetched, stored = backfill.backfill_region(
-            session, QUEENSTOWN, date(2025, 8, 10), 4, delay=0, dry_run=False
+            session, QUEENSTOWN, date(2025, 8, 10), date(2025, 8, 6), delay=0, dry_run=False
         )
 
         assert (fetched, stored) == (4, 1)
@@ -120,7 +129,7 @@ def test_stores_each_distinct_advisory(
 
     with Session(engine) as session:
         _, stored = backfill.backfill_region(
-            session, QUEENSTOWN, date(2025, 8, 10), 4, delay=0, dry_run=False
+            session, QUEENSTOWN, date(2025, 8, 10), date(2025, 8, 6), delay=0, dry_run=False
         )
 
         assert stored == 2
@@ -136,7 +145,7 @@ def test_stops_walking_once_records_run_out(
 
     with Session(engine) as session:
         fetched, _ = backfill.backfill_region(
-            session, QUEENSTOWN, date(2025, 8, 10), 100, delay=0, dry_run=False
+            session, QUEENSTOWN, date(2025, 8, 10), date(2025, 5, 1), delay=0, dry_run=False
         )
 
         assert fetched == 3  # 9th, 8th, then the 7th answers with nothing
@@ -146,7 +155,7 @@ def test_stops_walking_once_records_run_out(
 def test_rerun_resumes_from_the_new_frontier(
     engine: Engine, no_delay: None, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """The restart contract: a second run picks up where the first stopped."""
+    """The restart contract: a later run resumes at the frontier, not back at today."""
     published = {date(2025, 8, day): 2 for day in range(1, 11)}
     fake = FakeHistory(published)
     _patch(monkeypatch, fake)
@@ -156,12 +165,22 @@ def test_rerun_resumes_from_the_new_frontier(
         session.commit()
 
         backfill.backfill_region(
-            session, QUEENSTOWN, backfill.frontier(session, QUEENSTOWN), 3, delay=0, dry_run=False
+            session,
+            QUEENSTOWN,
+            backfill.frontier(session, QUEENSTOWN),
+            date(2025, 8, 7),
+            delay=0,
+            dry_run=False,
         )
         assert backfill.frontier(session, QUEENSTOWN) == date(2025, 8, 7)
 
         backfill.backfill_region(
-            session, QUEENSTOWN, backfill.frontier(session, QUEENSTOWN), 3, delay=0, dry_run=False
+            session,
+            QUEENSTOWN,
+            backfill.frontier(session, QUEENSTOWN),
+            date(2025, 8, 4),
+            delay=0,
+            dry_run=False,
         )
 
         assert backfill.frontier(session, QUEENSTOWN) == date(2025, 8, 4)
@@ -174,7 +193,7 @@ def test_rerunning_the_same_range_stores_nothing_twice(
     _patch(monkeypatch, FakeHistory({date(2025, 8, 7): 3, date(2025, 8, 8): 1}))
 
     with Session(engine) as session:
-        args = (session, QUEENSTOWN, date(2025, 8, 10), 4)
+        args = (session, QUEENSTOWN, date(2025, 8, 10), date(2025, 8, 6))
         first = backfill.backfill_region(*args, delay=0, dry_run=False)
         second = backfill.backfill_region(*args, delay=0, dry_run=False)
 
@@ -189,7 +208,7 @@ def test_dry_run_writes_nothing_and_does_not_double_count(
 
     with Session(engine) as session:
         _, stored = backfill.backfill_region(
-            session, QUEENSTOWN, date(2025, 8, 10), 4, delay=0, dry_run=True
+            session, QUEENSTOWN, date(2025, 8, 10), date(2025, 8, 6), delay=0, dry_run=True
         )
 
         assert stored == 1
@@ -205,6 +224,28 @@ def test_creates_the_source_row_but_no_fetch_bookkeeping(engine: Engine) -> None
         assert status is not None
         assert status.last_attempt_at is None and status.last_success_at is None
         assert session.exec(select(FetchRun)).all() == []
+
+
+def test_run_targets_days_before_today_not_the_frontier(
+    engine: Engine, no_delay: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """--days is a target date, not an increment: a region already reaching it fetches nothing."""
+    today = datetime.now(backfill.NZ).date()
+    fake = FakeHistory({today - timedelta(days=30): 2})
+    _patch(monkeypatch, fake)
+    deep = today - timedelta(days=5)
+
+    with Session(engine) as session:
+        session.add(_advisory("Queenstown", datetime(deep.year, deep.month, deep.day, 7)))
+        session.commit()
+
+    backfill.run(engine, 3, delay=0, dry_run=False)
+
+    asked_by_region: dict[str, list[date]] = {}
+    for name, day in fake.asked:
+        asked_by_region.setdefault(name, []).append(day)
+    assert "Queenstown" not in asked_by_region
+    assert asked_by_region[REGIONS[1].name] == [today - timedelta(days=d) for d in (1, 2, 3)]
 
 
 def test_run_covers_every_region(
