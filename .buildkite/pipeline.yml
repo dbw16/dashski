@@ -1,17 +1,18 @@
 steps:
   - label: ":mag: lint"
     command: |
-      export PATH="$HOME/.local/bin:$PATH"
+      export PATH="$$HOME/.local/bin:$$PATH"
       uv tool install rust-just
       uv sync --frozen
-      just lint 2>&1 | tee /tmp/lint.log
-      status=${PIPESTATUS[0]}
-      if [ "$status" -ne 0 ]; then
+      just lint > /tmp/lint.log 2>&1
+      status=$$?
+      cat /tmp/lint.log
+      if [ "$$status" -ne 0 ]; then
         { echo '```'; cat /tmp/lint.log; echo '```'; } | buildkite-agent annotate --style error --context lint
       else
         echo "Lint passed" | buildkite-agent annotate --style success --context lint
       fi
-      exit "$status"
+      exit "$$status"
     plugins:
       - docker#v5.11.0:
           image: "ghcr.io/astral-sh/uv:python3.14-bookworm-slim"
