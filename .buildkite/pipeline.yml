@@ -16,6 +16,22 @@ steps:
     plugins:
       - docker#v5.11.0:
           image: "ghcr.io/astral-sh/uv:python3.14-bookworm-slim"
+          mount-buildkite-agent: true
+          volumes:
+            - "/var/buildkite-cache/dashski/uv-cache:/root/.cache/uv"
+            - "/var/buildkite-cache/dashski/uv-local:/root/.local"
+
+  - label: ":test_tube: test"
+    command: |
+      export PATH="$$HOME/.local/bin:$$PATH"
+      uv tool install rust-just
+      uv sync --frozen
+      just test
+    plugins:
+      - docker#v5.11.0:
+          image: "ghcr.io/astral-sh/uv:python3.14-bookworm-slim"
+          environment:
+            - "BUILDKITE_ANALYTICS_TOKEN"
           volumes:
             - "/var/buildkite-cache/dashski/uv-cache:/root/.cache/uv"
             - "/var/buildkite-cache/dashski/uv-local:/root/.local"
