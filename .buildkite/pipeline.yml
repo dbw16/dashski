@@ -1,8 +1,13 @@
 steps:
   - label: ":mag: lint"
     command: |
-      curl -LsSf https://astral.sh/uv/install.sh | sh
       export PATH="$HOME/.local/bin:$PATH"
       uv tool install rust-just
       uv sync --frozen
       just lint
+    plugins:
+      - docker#v5.11.0:
+          image: "ghcr.io/astral-sh/uv:python3.14-bookworm-slim"
+          volumes:
+            - "/var/buildkite-cache/dashski/uv-cache:/root/.cache/uv"
+            - "/var/buildkite-cache/dashski/uv-local:/root/.local"
